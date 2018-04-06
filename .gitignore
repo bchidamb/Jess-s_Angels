@@ -1,0 +1,18 @@
+# these folders are taken directly from the provided folders mu.zip and um.zip
+# code will not run unless these folders are present with the listed files
+
+mu/*
+# contents:
+#   all.dta
+#   all.idx
+#   example.dta
+#   qual.dta
+#   README
+
+um/*
+# contents:
+#   all.dta
+#   all.idx
+#   example.dta
+#   qual.dta
+#   README
