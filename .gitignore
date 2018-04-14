@@ -17,6 +17,7 @@ um/*
 #   qual.dta
 #   README
 
+# run dataset_creation.py to populate this folder as listed
 data/*
 # contents:
 #   mu_train.csv
@@ -29,3 +30,6 @@ data/*
 #   um_hidden.csv
 #   um_probe.csv
 #   um_qual.csv
+
+# submissions from all models should be saved here
+submissions/*
