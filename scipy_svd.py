@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import coo_matrix
 from scipy.sparse.linalg import svds
-import os
-from time import strftime
+from utils import *
 
 model = 'scipy_svd'
 ordering = 'mu' # rows correspond to movie_ids; cols correspond to user_ids
@@ -13,10 +12,6 @@ submit = False # set to True to save a submission on qual
 def three_dot(a, b, c):
     # Similar to dot product but for 3 equal length vectors
     return np.sum(a[i] * b[i] * c[i] for i in range(len(c)))
-
-
-def RMSE(true, pred):
-    return np.sqrt(np.sum((true - pred)**2) / len(true))
 
 
 def predict(mean, U, s, Vt, row, col):
@@ -29,18 +24,6 @@ def predict(mean, U, s, Vt, row, col):
         pred.append(mean + three_dot(U[r], s, V[c]))
     
     return np.array(pred)
-    
-    
-def save_submission(pred):
-    # Saves submission on qual set given predictions
-    # File is saved as 'submissions/*.pred'
-    filename = '_'.join([ordering, model, strftime('%b%d%H%M%S')]) + '.pred'
-    f = open(os.path.join('submissions', filename), 'w')
-    
-    for p in pred:
-        f.write('%.3f\n' % p)
-        
-    f.close()
     
 
 print('Loading data...')
