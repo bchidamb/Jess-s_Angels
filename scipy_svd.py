@@ -63,4 +63,4 @@ if submit:
     col_qual = df_qual['Movie Number'].values - 1
     
     pred = predict(mean, U, s, Vt, row_qual, col_qual)
-    save_submission(pred)
+    save_submission(model, pred, ordering)

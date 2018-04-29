@@ -33,3 +33,6 @@ data/*
 
 # submissions from all models should be saved here
 submissions/*
+
+# save model parameters here
+models/*

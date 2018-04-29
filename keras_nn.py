@@ -2,14 +2,22 @@ import numpy as np
 import pandas as pd
 from keras.models import Sequential
 from keras.layers import Activation, Dense
-from keras.utils import to_categorical
 from utils import *
+from sys import getsizeof
 
 # WARNING: This file takes a very long time to run
 
 model = 'keras_nn'
 ordering = 'mu' # rows correspond to movie_ids; cols correspond to user_ids
 submit = False # set to True to save a submission on qual
+
+
+def to_categorical(I, n):
+    count = len(I)
+    v = np.full((count, n), False)
+    for c, i in enumerate(I):
+        v[c, i] = True
+    return v
 
 
 def embedding_model(n_users, n_movies):
@@ -39,6 +47,10 @@ val_val = df_val['Rating'].values
 
 n_users, n_movies = max(df['User Number']), max(df['Movie Number'])
 n_examples = df.shape[0]
+print(n_examples)
+print(n_users)
+print(n_movies)
+
 ind = np.random.permutation(n_examples)
 
 def generate_examples(batch_size=100):
@@ -60,5 +72,5 @@ cf_model = embedding_model(n_users, n_movies)
 cf_model.fit_generator(
     generate_examples(batch_size), 
     steps_per_epoch=n_examples / batch_size, 
-    epochs=1
+    epochs=3
 )
