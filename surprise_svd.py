@@ -3,6 +3,7 @@ import pandas as pd
 from surprise import Dataset, Reader, SVD, accuracy, dump
 from utils import *
 import os
+import gc
 
 # WARNING: This file takes a long time to run
 
@@ -30,7 +31,9 @@ train_raw = Dataset.load_from_df(df[['User Number', 'Movie Number', 'Rating']], 
 train = train_raw.build_full_trainset()
 
 model.fit(train)
+gc.collect()
 
+'''
 train_pred = model.test(train.build_testset())
 val_raw = Dataset.load_from_df(df_val[['User Number', 'Movie Number', 'Rating']], reader)
 val = val_raw.build_full_trainset()
@@ -38,12 +41,12 @@ val_pred = model.test(val.build_testset())
 
 print('Train RMSE:', accuracy.rmse(train_pred))
 print('Val RMSE:', accuracy.rmse(val_pred))
+'''
 
 if save_model:
     
     print('Saving model...')
     dump.dump(os.path.join('models', 'surprise_model'), model)
-
 
 if submit:
 
