@@ -7,9 +7,9 @@ import gc
 
 # WARNING: This file takes a long time to run
 
-model = 'surprise_svd'
+model_name = 'surprise_svd'
 ordering = 'mu' # rows correspond to movie_ids; cols correspond to user_ids
-submit = False # set to True to save a submission on qual
+submit = True# set to True to save a submission on qual
 save_model = False # set to True to save model parameters for future predictions
 
 
@@ -58,4 +58,4 @@ if submit:
         r_est = model.predict(row['User Number'], row['Movie Number']).est
         pred.append(r_est)
         
-    save_submission(model, pred, ordering)
+    save_submission(model_name, pred, ordering)
