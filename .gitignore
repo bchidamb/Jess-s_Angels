@@ -36,3 +36,9 @@ submissions/*
 
 # save model parameters here
 models/*
+
+# compiled pythons are venomous
+__pycache__/*
+
+# save outputs here
+outputs/*
