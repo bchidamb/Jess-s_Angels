@@ -7,6 +7,7 @@ import time
 import numpy as np
 import tensorflow as tf
 import os
+import pandas as pd
 
 
 class RBM(object):
@@ -32,15 +33,18 @@ class RBM(object):
                                  tf.constant_initializer(0.0))
 
         self.k = k
+        # not sure what this does
         self.chain = tf.get_variable("chain", [batch_size, self.dim_hidden],
                                      tf.float32, tf.constant_initializer(0.0))
         self.monitoring_loss = None
         self.build_model()
 
-    def build_model(self):
+    def build_model(self): 
+        # need to change
         self.images = tf.placeholder(tf.float32, [self.batch_size] +
                                      [self.image_width, self.image_width],
                                      name='real_images')
+        
 
         pre_sigmoid_h, h_mean, h_sample = self.sample_h_given_v(self.images)
 
