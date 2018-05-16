@@ -14,7 +14,7 @@ import gc
 model_name = 'surprise_SVD'
 ordering = 'mu' # rows correspond to movie_ids; cols correspond to user_ids
 submit = True# set to True to save a submission on qual
-save_model = True # set to True to save model parameters for future predictions
+save_model = False # set to True to save model parameters for future predictions
 
 
 print('Loading data...')
