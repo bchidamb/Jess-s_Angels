@@ -57,7 +57,7 @@ val = df['Rating'].values
 
 n_samples = len(val)
 
-df_val = pd.read_csv(os.path.join('data', 'mu_val.csv'))
+df_val = pd.read_csv(os.path.join('data', 'mu_probe.csv'))
 
 row_val = df_val['User Number'].values - 1
 col_val = df_val['Movie Number'].values - 1
