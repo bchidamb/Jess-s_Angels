@@ -9,7 +9,7 @@ from data_processing import *
 from utils import *
 import gc
 
-submit = False
+submit = True
 model_name = 'tensorflow_svd++'
 ordering = 'mu'
 
@@ -62,7 +62,7 @@ def SVDpp(n_samples, n_u, n_m, mean, mpu, lf=100, reg=0.02, learning_rate=0.005)
 
 print('Loading data...')
 
-train_dataset='train'
+train_dataset='probe'
 
 mpu = movies_per_user(train_dataset)
 
@@ -93,7 +93,7 @@ gc.collect()
 print('Initializing model...')
 
 batch = 100000
-epochs = 20
+epochs = 2
 i, j, r, se, pred, model = SVDpp(n_samples, n_users, n_movies, np.mean(val), mpu, lf=100, reg=0.02, learning_rate=5e-3)
 
 init = tf.global_variables_initializer()
@@ -110,14 +110,14 @@ for e in range(epochs):
     sq_errs_val = []
     start = clock()
     
-    for prog, p in enumerate(range(int(n_samples // batch))):
+    for prog in range(1+int(n_samples // batch)):
         idx = order[np.arange(batch) + prog * batch]
         sess.run(model, feed_dict={i: row[idx], j: col[idx], r: val[idx]})
         
         c = sess.run(se, feed_dict={i: row[idx], j: col[idx], r: val[idx]})
         sq_errs.append(c)
         
-    for prog, p in enumerate(range(int(n_samples_val // batch))):
+    for prog in range(1+int(n_samples_val // batch)):
         idx = np.arange(batch) + prog * batch
         c = sess.run(se, feed_dict={i: row_val[idx], j: col_val[idx], r: val_val[idx]})
         sq_errs_val.append(c)
@@ -139,10 +139,10 @@ if submit:
     n_samples_qual = len(row_qual)
     
     predictions = []
-    for prog, p in enumerate(range(1+ int(n_samples // batch))):
+    for prog, p in enumerate(range(1+ int(n_samples_qual // batch))):
         l = prog * batch
         r = (prog + 1) * batch
-        pr = sess.run(pred, feed_dict={i: row[l:r], j: col[l:r]})
+        pr = sess.run(pred, feed_dict={i: row_qual[l:r], j: col_qual[l:r]})
         
         predictions += list(pr)
     
