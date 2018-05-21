@@ -32,7 +32,7 @@ data/*
 #   um_qual.csv
 
 # submissions from all models should be saved here
-submissions/*
+# submissions/*
 
 # save model parameters here
 models/*
