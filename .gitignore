@@ -42,3 +42,7 @@ __pycache__/*
 
 # save outputs here
 outputs/*
+
+# gotta not have a ton of crap from graphchi-cpp
+# all of these we generate and aren't needed to run the model
+graphchi-cpp/mu/*
