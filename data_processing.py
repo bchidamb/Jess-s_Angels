@@ -2,27 +2,28 @@ import pandas as pd
 import numpy as np
 import os
 
-def movies_per_user(dataset):
+def movies_per_user(row, col, row_idx):
     '''
     Arguments:
-        df_um - A dataframe obtained by loading 'um_<dataset>.csv'
+        L - the first index in the dataset corresponding to each user in row_idx
+        R - 1 + the last index in the dataset corresponding to each user in row_idx
+        col - the full list of movies ids
+        row_idx - the list of user ids we need the movies for
+        
+    Runtime:
+        O(Sum |I_u|)
     
     Returns:
-        A list of lists where the uth list is a list of movies rated by user u
-        Note - movies are 0 indexed
+        A dictionary whose parameters are used to create a tf SparseTensor (2D)
     '''
-    path = os.path.join('data', 'um_' + dataset + '.csv')
-    df_um = pd.read_csv(path, dtype=np.int32)
+    n_users = len(row_idx)
     
-    n_users = np.max(df_um['User Number'])
-    users = list(1 + np.arange(n_users))
-
-    L = df_um['User Number'].searchsorted(users, side='left')
-    R = df_um['User Number'].searchsorted(users, side='right')
+    L = row.searchsorted(row_idx, side='left')
+    R = row.searchsorted(row_idx, side='right')
     
-    ind_row = df_um['User Number'].values - 1
+    ind_row = np.concatenate([np.full(R[u] - L[u], u) for u in range(n_users)])
     ind_col = np.concatenate([np.arange(R[u] - L[u]) for u in range(n_users)])
-    val = df_um['Movie Number'].values - 1
+    val = np.concatenate([col[L[u]:R[u]] for u in range(n_users)])
     
     result = {
         'indices': np.transpose([ind_row, ind_col]), 
