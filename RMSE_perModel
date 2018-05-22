@@ -1,0 +1,4 @@
+This is to document the RMSE that we have acheived per model, for bookkeeping
+purposes:
+Model:              RMSE Score:
+RBM(graphchi)       0.9138

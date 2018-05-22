@@ -8,8 +8,6 @@ import os
 # https://math.nist.gov/MatrixMarket/formats.html
 # https://people.sc.fsu.edu/~jburkardt/data/mm/mm.html
 
-
-
 # prepend to the file 
 # https://www.quora.com/How-can-I-write-text-in-the-first-line-of-an-existing-file-using-Python
 def prependEntries(fileName, string1, string2):
@@ -60,7 +58,7 @@ maxMovies = -1
 
 maxUsers, maxMovies = fileToMatrixMarket_MU('mu_train.csv', 'mu_train', maxUsers, maxMovies)
 fileToMatrixMarket_MU('mu_val.csv', 'mu_val', maxUsers, maxMovies)
-fileToMatrixMarket_MU('mu_qual.csv', 'mu_qual', maxUsers, maxMovies)
+fileToMatrixMarket_MU('mu_qual_val.csv', 'mu_qual_val', maxUsers, maxMovies)
 
 
 
