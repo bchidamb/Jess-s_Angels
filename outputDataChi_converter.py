@@ -59,8 +59,8 @@ def fileToPrediction_MU(fileName, label, label1, lines):
     #df = pd.read_csv(os.path.join('graphchi-cpp', fileName))
     
     
-fileOutLabelPred = 'mu_rbm' + strftime('%b%d%h%M%S') + '.pred'
-fileOutLabelVal  = 'mu_rbm' + strftime('%b%d%h%M%S') + '.val'
+fileOutLabelPred = 'mu_svd++_graphchi' + strftime('%b%d%h%M%S') + '.pred'
+fileOutLabelVal  = 'mu_svd++_graphchi' + strftime('%b%d%h%M%S') + '.val'
 
 fileToPrediction_MU('./graphchi-cpp/mu_qual_val_mm.predict', fileOutLabelPred, fileOutLabelVal, 3)
 

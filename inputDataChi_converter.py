@@ -58,6 +58,7 @@ maxMovies = -1
 
 maxUsers, maxMovies = fileToMatrixMarket_MU('mu_train.csv', 'mu_train', maxUsers, maxMovies)
 fileToMatrixMarket_MU('mu_val.csv', 'mu_val', maxUsers, maxMovies)
+fileToMatrixMarket_MU('mu_probe.csv', 'mu_probe', maxUsers, maxMovies)
 fileToMatrixMarket_MU('mu_qual_val.csv', 'mu_qual_val', maxUsers, maxMovies)
 
 
