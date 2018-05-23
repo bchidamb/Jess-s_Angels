@@ -84,7 +84,7 @@ class SVD {
                 int m = data.col[idx[i]];
                 double dr = pred_one(u, m) - data.val[idx[i]];
                 b_u[u] -= lr * (dr + reg * b_u[u]);
-                b_m[m] -= lr * (dr + reg * b_u[m]);
+                b_m[m] -= lr * (dr + reg * b_m[m]);
                 for (int j = 0; j < lf; j++) {
                     double p_old = p[u][j];
                     double q_old = q[m][j];
@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
     clock_t t = clock();
     
     SVD model(458293, 17770, 100);
-    model.train(train_set, 20, 0.005, 0.02);
+    model.train(train_set, 10, 0.005, 0.02);
     
     double t_delta = (double) (clock() - t) / CLOCKS_PER_SEC;
     
