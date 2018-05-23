@@ -4,6 +4,11 @@ import numpy as np
 import pandas as pd
 import os
 from time import clock
+from utils import *
+
+submit = False
+model_name = 'tensorflow_svd'
+ordering = 'mu'
 
 
 # useful links:
@@ -74,7 +79,7 @@ print('Training model...')
 
 batch = 10000
 epochs = 20
-i, j, r, se, pred, model = SVD(n_samples, n_users, n_movies, np.mean(val), lf=100, reg=0.02, learning_rate=5e-3)
+i, j, r, se, pred, model = SVD(n_samples, n_users, n_movies, np.mean(val), lf=200, reg=0.02, learning_rate=5e-3)
 
 init = tf.global_variables_initializer()
 
@@ -104,3 +109,25 @@ for e in range(epochs):
     val_rmse = np.sqrt(np.sum(sq_errs_val)/n_samples_val)
     t = end - start
     print('Epoch %d\t\tTrain RMSE = %.4f\tVal RMSE = %.4f\t\tTime = %.4f' % (e, train_rmse, val_rmse, t))
+    
+if submit:
+
+    for dataset in ('qual', 'probe'):
+    
+        print('Saving submission...')
+        df_qual = pd.read_csv(os.path.join('data', 'mu_' + dataset + '.csv'))
+
+        row_qual = df_qual['User Number'].values - 1
+        col_qual = df_qual['Movie Number'].values - 1
+        
+        n_samples_qual = len(row_qual)
+        
+        predictions = []
+        for prog, p in enumerate(range(1+ int(n_samples_qual // batch))):
+            li = prog * batch
+            ri = min((prog + 1) * batch, n_samples_qual)
+            pr = sess.run(pred, feed_dict={i: row_qual[li:ri], j: col_qual[li:ri], r: np.zeros(ri - li)})
+            
+            predictions += list(pr)
+        
+        save_submission(model_name + '_' + dataset, predictions, ordering)

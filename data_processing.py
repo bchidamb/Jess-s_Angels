@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 
-def movies_per_user(row, col, row_idx):
+def movies_per_user(row, col, row_idx, n_movies_tot):
     '''
     Arguments:
         L - the first index in the dataset corresponding to each user in row_idx
@@ -21,14 +21,9 @@ def movies_per_user(row, col, row_idx):
     L = row.searchsorted(row_idx, side='left')
     R = row.searchsorted(row_idx, side='right')
     
-    ind_row = np.concatenate([np.full(R[u] - L[u], u) for u in range(n_users)])
-    ind_col = np.concatenate([np.arange(R[u] - L[u]) for u in range(n_users)])
-    val = np.concatenate([col[L[u]:R[u]] for u in range(n_users)])
+    out = np.full((n_users, np.max(R - L)), n_movies_tot)
     
-    result = {
-        'indices': np.transpose([ind_row, ind_col]), 
-        'values': val,
-        'dense_shape': (n_users, np.max(R - L))
-    }
+    for u in range(n_users):
+        out[u][:(R[u] - L[u])] = col[L[u]:R[u]]
     
-    return result
+    return out, (R - L)

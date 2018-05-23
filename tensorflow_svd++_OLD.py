@@ -29,8 +29,7 @@ def SVDpp(n_samples, n_u, n_m, mean, lf=100, reg=0.02, learning_rate=0.005):
     j = tf.placeholder(tf.int32, shape=[None])
     r = tf.placeholder(tf.float32, shape=[None])
     
-    n_I_u = tf.placeholder(tf.int32, shape=[None])
-    mpu_lookup = tf.placeholder(tf.int64, shape=[None, None])
+    mpu_lookup = tf.sparse_placeholder(tf.int64)
     
     batch = tf.shape(i)[0]
     
@@ -45,31 +44,27 @@ def SVDpp(n_samples, n_u, n_m, mean, lf=100, reg=0.02, learning_rate=0.005):
     y_m = tf.get_variable('implicit_movie_embedding', shape=[n_m, lf], initializer=inits, regularizer=regs)
     
     slice = tf.nn.embedding_lookup
-    
-    y_m_pad = tf.concat([y_m, tf.zeros((1, lf), dtype=tf.float32)], axis=0)
-    I_u_slice = slice(y_m_pad, mpu_lookup)
-    I_u_sum = tf.reduce_sum(I_u_slice, axis=1)
-    c_I_u = 1.0 / tf.sqrt(tf.expand_dims(tf.cast(n_I_u, tf.float32), 1))
+    I_u_slice = tf.nn.embedding_lookup_sparse(y_m, mpu_lookup, None, combiner='sqrtn')
     
     # prediction is u + b_u + b_i + q_m . (p_u + sum_(j in I_u) (y_j) / |I_u|^0.5)
     r_pred = tf.tile(mu, [batch]) \
         + slice(b_u, i) \
         + slice(b_m, j) \
-        + tf.reduce_sum(tf.multiply(slice(p_u, i) + tf.multiply(c_I_u, I_u_sum), slice(q_m, j)), 1)
+        + tf.reduce_sum(tf.multiply(slice(p_u, i) + I_u_slice, slice(q_m, j)), 1)
         
     reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
     train_loss = tf.reduce_sum(tf.pow(r_pred-r,2)) + sum(reg_losses)
     se = tf.reduce_sum(tf.pow(r_pred-r,2))
     model = tf.train.GradientDescentOptimizer(learning_rate).minimize(train_loss)
     
-    return i, j, r, mpu_lookup, n_I_u, se, r_pred, model
+    return i, j, r, mpu_lookup, se, r_pred, model
     
 
 print('Loading data...')
 
 # NOTE: this model breaks on datasets where some users have no ratings, e.g. 'val'
 # -- datasets that work: 'probe', 'train'
-train_dataset='train'
+train_dataset='probe'
 
 col_types = {'User Number': np.int32, 'Movie Number': np.int16, 'Rating': np.int8}
 df = pd.read_csv(os.path.join('data', 'um_' + train_dataset + '.csv'), dtype=col_types)
@@ -84,13 +79,6 @@ n_users = 1 + np.max(row)
 n_movies = 1 + np.max(col)
 order = np.random.permutation(n_samples)
 
-# Uncomment to improve runtime at the cost of memory
-# row_ord = row[order]
-# col_ord = col[order]
-# val_ord = val[order]
-# L_ord = L_all[row_ord]
-# R_ord = R_all[row_ord]
-
 df_val = pd.read_csv(os.path.join('data', 'um_probe.csv'))
 
 row_val = df_val['User Number'].values - 1
@@ -103,16 +91,14 @@ gc.collect()
 
 print('Initializing model...')
 
-batch = 1000
+batch = 10000
 epochs = 20
-i, j, r, mpu_lookup, n_I_u, se, pred, model = \
+i, j, r, mpu_lookup, se, pred, model = \
     SVDpp(n_samples, n_users, n_movies, np.mean(val), lf=100, reg=0.02, learning_rate=5e-3)
 
 init = tf.global_variables_initializer()
 
-config = tf.ConfigProto(allow_soft_placement=True)
-config.gpu_options.allow_growth = True
-sess = tf.Session(config=config)
+sess = tf.Session()
 
 sess.run(init)
 print('Model size: %d bytes' % sess.graph_def.ByteSize())
@@ -127,13 +113,12 @@ for e in range(epochs):
     for prog in range(1+int(n_samples // batch)):
         a = prog * batch
         b = (1 + prog) * batch
-        mpu, niu = f_time(movies_per_user, row, col, row[order[a:b]], n_movies)
+        mpu = movies_per_user(row, col, row[order[a:b]])
         feed_dict={
             i: row[order[a:b]], 
             j: col[order[a:b]], 
             r: val[order[a:b]], 
-            mpu_lookup: mpu,
-            n_I_u: niu
+            mpu_lookup: (mpu['indices'], mpu['values'], mpu['dense_shape'])
         }
         _, c = f_time(sess.run, [model, se], feed_dict=feed_dict)
         sq_errs.append(c)
@@ -141,13 +126,12 @@ for e in range(epochs):
     for prog in range(1+int(n_samples_val // batch)):
         a = prog * batch
         b = (1 + prog) * batch
-        mpu, niu = movies_per_user(row, col, row_val[a:b], n_movies)
+        mpu = movies_per_user(row, col, row_val[a:b])
         feed_dict={
             i: row_val[a:b], 
             j: col_val[a:b], 
             r: val_val[a:b], 
-            mpu_lookup: mpu,
-            n_I_u: niu
+            mpu_lookup: (mpu['indices'], mpu['values'], mpu['dense_shape'])
         }
         c = sess.run(se, feed_dict=feed_dict)
         sq_errs_val.append(c)
@@ -158,24 +142,23 @@ for e in range(epochs):
     t = end - start
     print('Epoch %d\t\tTrain RMSE = %.4f\tVal RMSE = %.4f\t\tTime = %.4f' % (e, train_rmse, val_rmse, t))
     
-
+'''
 if submit:
-
-    for dataset in ('qual', 'probe'):
     
-        print('Saving submission...')
-        df_qual = pd.read_csv(os.path.join('data', 'mu_' + dataset + '.csv'))
+    print('Saving submission...')
+    df_qual = pd.read_csv(os.path.join('data', 'mu_qual.csv'))
 
-        row_qual = df_qual['User Number'].values - 1
-        col_qual = df_qual['Movie Number'].values - 1
-        n_samples_qual = len(row_qual)
+    row_qual = df_qual['User Number'].values - 1
+    col_qual = df_qual['Movie Number'].values - 1
+    n_samples_qual = len(row_qual)
+    
+    predictions = []
+    for prog, p in enumerate(range(1+ int(n_samples_qual // batch))):
+        l = prog * batch
+        r = (prog + 1) * batch
+        pr = sess.run(pred, feed_dict={i: row_qual[l:r], j: col_qual[l:r]})
         
-        predictions = []
-        for prog, p in enumerate(range(1+ int(n_samples_qual // batch))):
-            l = prog * batch
-            r = (prog + 1) * batch
-            pr = sess.run(pred, feed_dict={i: row_qual[l:r], j: col_qual[l:r]})
-            
-            predictions += list(pr)
-        
-        save_submission(model_name + '_' + dataset, predictions, ordering)
+        predictions += list(pr)
+    
+    save_submission(model_name, predictions, ordering)
+'''
