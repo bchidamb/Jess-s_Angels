@@ -6,15 +6,19 @@ import gc
 # Puts all ratings into one of 30 bins
 num_bins = 30
 
+# Min and max date as specified in the README
+minBin = 1.0
+maxBin = 2243.0
+binSize = float((maxBin - minBin)/num_bins)
+
 def binDataframe(df):
 
     # Create a new column called bin
     df["bin"] = pd.Series([-1]*len(df), index=df.index)
 
     # Divide the times into even bins
-    minBin = min(df["Date Number"])
-    maxBin = max(df["Date Number"])
-    binSize = float((maxBin - minBin)/num_bins)
+    #minBin = min(df["Date Number"])
+    #maxBin = max(df["Date Number"])
 
     for i in range(0, num_bins):
         lb = minBin + i*binSize
