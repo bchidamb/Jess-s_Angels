@@ -21,16 +21,16 @@ class Dataset {
     vector<int> movie_ids; // movie id
     vector<int> val; // rating
     // movies per user what movies each user has rated [user_ids][movie_ids]
-    vector<vector<int>> mpu;  
+    vector<vector<int>> mpu;
     Dataset() {
         vector<vector<int>> temp(n_users, vector<int>(0,0));
         mpu = temp;
     }
 };
 
-Dataset load_data(string path); 
-void save_submission(string model_name, string ordering, string source, vector<double> predictions); 
-int updateSVDpp(int u, int m, double dr, int start, int end, double lr, double reg, double **p, double **q, double **y, vector<vector<int>> &mpu); 
+Dataset load_data(string path);
+void save_submission(string model_name, string ordering, string source, vector<double> predictions);
+int updateSVDpp(int u, int m, double dr, int start, int end, double lr, double reg, double **p, double **q, double **y, vector<vector<int>> &mpu);
 
 // Based on https://stackoverflow.com/questions/29375797
 template<typename T>
@@ -51,17 +51,17 @@ class SVD {
     double **p; // user embeddings
     double **q; // movie embeddings
     int lf;
-    
+
     SVD(int latent_factors) {
         lf = latent_factors;
         b_u = new double[n_users];
         b_m = new double[n_movies];
         p = Dynamic2DArray<double>(n_users, lf);
         q = Dynamic2DArray<double>(n_movies, lf);
-        
+
         default_random_engine generator;
         normal_distribution<double> distribution(0.0, 0.1);
-        
+
         for (int i = 0; i < n_users; i++) {
             b_u[i] = distribution(generator);
             for (int j = 0; j < lf; j++) {
@@ -75,7 +75,7 @@ class SVD {
             }
         }
     }
-    
+
     double pred_one(int u, int m) {
         double dot = 0.0;
         for (int i = 0; i < lf; i++) {
@@ -83,14 +83,14 @@ class SVD {
         }
         return (dot + b_u[u] + b_m[m] + mean);
     }
-    
-    double train(Dataset data, int epochs, double lr, double reg) {
+
+    void train(Dataset data, int epochs, double lr, double reg) {
         mean = accumulate(data.val.begin(), data.val.end(), 0.0) / data.user_ids.size();
         vector<int> idx;
         for (int i = 0; i < data.user_ids.size(); i++) {
             idx.push_back(i);
         }
-        
+
         for (int ep = 0; ep < epochs; ep++) {
             cout << "Epoch " << ep << endl;
             random_shuffle(idx.begin(), idx.end());
@@ -109,7 +109,7 @@ class SVD {
             }
         }
     }
-    
+
     vector<double> predict(Dataset data) {
         vector<double> pred;
         for(int i = 0; i < data.user_ids.size(); i++) {
@@ -117,7 +117,7 @@ class SVD {
         }
         return pred;
     }
-    
+
     double error(Dataset data) {
         vector<double> pred = this->predict(data);
         double SE = 0.0;
@@ -130,7 +130,7 @@ class SVD {
 
 class SVDpp {
     public:
-    int numThreads; 
+    int numThreads;
     double mean;
     double *b_u; // user biases
     double *b_m; // movie biases
@@ -138,7 +138,7 @@ class SVDpp {
     double **q; // movie embeddings
     double **y; // implicit latent factor
     int lf;
-    
+
     SVDpp(int latent_factors) {
         lf = latent_factors;
         b_u = new double[n_users];
@@ -149,7 +149,7 @@ class SVDpp {
 
         default_random_engine generator;
         normal_distribution<double> distribution(0.0, 0.1);
-        
+
         for (int i = 0; i < n_users; i++) {
             b_u[i] = distribution(generator);
             for (int j = 0; j < lf; j++) {
@@ -164,7 +164,7 @@ class SVDpp {
             }
         }
     }
-    
+
     // u user, m movie
     double pred_one(int u, int m, vector<int> r_u) {
         double dot = 0.0;
@@ -180,7 +180,7 @@ class SVDpp {
         return (dot + b_u[u] + b_m[m] + mean);
     }
 
-    double train(Dataset data, int epochs, double lr, double reg) {
+    void train(Dataset data, int epochs, double lr, double reg) {
         mean = accumulate(data.val.begin(), data.val.end(), 0.0) / data.user_ids.size();
         vector<int> idx;
         for (int i = 0; i < data.user_ids.size(); i++) {
@@ -203,13 +203,13 @@ class SVDpp {
                 // note that ref() is a reference wrapper REQUIRED FOR THREADING, DO NOT REMOVE
                 // http://www.cplusplus.com/reference/functional/reference_wrapper/
                 // https://stackoverflow.com/questions/28950835/c-error-no-type-named-type-in-class-stdresult-ofvoid-stdunordered
-    
+
                 thread th1(updateSVDpp, u, m, dr, 0, 20, lr, reg, p, q, y, ref(data.mpu));
                 thread th2(updateSVDpp, u, m, dr, 20, 40, lr, reg, p, q, y, ref(data.mpu));
                 thread th3(updateSVDpp, u, m, dr, 40, 60, lr, reg, p, q, y, ref(data.mpu));
                 thread th4(updateSVDpp, u, m, dr, 60, 80, lr, reg, p, q, y, ref(data.mpu));
                 thread th5(updateSVDpp, u, m, dr, 80, 100, lr, reg, p, q, y, ref(data.mpu));
-                    
+
                 th1.join();
                 th2.join();
                 th3.join();
@@ -218,7 +218,7 @@ class SVDpp {
             }
         }
     }
-    
+
     vector<double> predict(Dataset data) {
         vector<double> pred;
         for(int i = 0; i < data.user_ids.size(); i++) {
@@ -226,7 +226,7 @@ class SVDpp {
         }
         return pred;
     }
-    
+
     double error(Dataset data) {
         vector<double> pred = this->predict(data);
         double SE = 0.0;
@@ -239,26 +239,26 @@ class SVDpp {
 
 // this is a static function so that we can make this from a thread
 // made it an integer return because we're calling this for the thread
-int updateSVDpp(int u, int m, double dr, int start, int end, double lr, double reg, double **p, double **q, double **y, vector<vector<int>> &mpu) { 
+int updateSVDpp(int u, int m, double dr, int start, int end, double lr, double reg, double **p, double **q, double **y, vector<vector<int>> &mpu) {
     //cout<<"update called with latent factor: "<<latFact<<endl;
     for (int latFact = start; latFact < end; latFact++) {
         double p_old = p[u][latFact];
         double q_old = q[m][latFact];
         double ru_negSqrt = 1.0 / pow(mpu[u].size(), 2.0);
-                        
-        // the summation of the y's for all the movies a user 
+
+        // the summation of the y's for all the movies a user
         // has watched with respect to latent factor latFact
         double sumY_mu = 0.0;
         for (int movInd = 0; movInd < mpu[u].size(); movInd++) {
             sumY_mu += y[mpu[u][movInd]][latFact];
         }
-    
+
         p[u][latFact] -= lr * (dr * q_old + reg * p_old);
         q[m][latFact] -= lr * (dr * (p_old + ru_negSqrt * sumY_mu) + reg * q_old);
-    
+
         // update y's here
         for (int movInd = 0; movInd < mpu[u].size(); movInd++) {
-            double y_old = y[mpu[u][movInd]][latFact]; 
+            double y_old = y[mpu[u][movInd]][latFact];
             y[mpu[u][movInd]][latFact] -= lr * (dr * q_old * ru_negSqrt + reg * y_old);
         }
     }
@@ -279,7 +279,7 @@ Dataset load_data(string path) {
         data.val.push_back(v);
         data.mpu[r-1].push_back(c - 1);
     }
-    
+
     return data;
 }
 
@@ -290,9 +290,9 @@ void save_submission(string model_name, string ordering, string source, vector<d
     time (&rawtime);
     timeinfo = localtime(&rawtime);
     strftime(buffer,sizeof(buffer),"%b%d%H%M%S", timeinfo);
-    
+
     string path = "../submissions/" + ordering + "_" + model_name + "_" + source + "_" + buffer + ".pred";
-    
+
     FILE * file = fopen(path.c_str(), "w");
     for (double p: predictions) {
         fprintf(file, "%.3f\n", p);
@@ -314,34 +314,34 @@ int main(int argc, char *argv[]) {
     int epochs = 10;
     double lr = 0.005;
     double reg = 0.02;
-    
+
     cout << "Loading data..." << endl;
-    
+
     Dataset train_set = load_data("../data/mu_train.csv");
     Dataset test_set1 = load_data("../data/mu_probe.csv");
     Dataset test_set2 = load_data("../data/mu_qual.csv");
-    
+
     cout << "Training model..." << endl;
     cout << "Using "<< latentFactors <<" latent factors "<<endl;
     cout << "Epochs: "<< epochs << " learning rate: "<< lr <<" reg: "<< reg << endl;
-    
+
     clock_t t = clock();
-    
+
     SVDpp model(latentFactors);
     cout<<"Model initalized! training on mu_probe.csv"<<endl;
     model.train(test_set1, epochs, lr, reg);
-    
+
     double t_delta = (double) (clock() - t) / CLOCKS_PER_SEC;
-    
+
     printf("Training time: %.2f s\n", t_delta);
-    
+
     double rmse = model.error(test_set1);
     printf("Train RMSE: %.3f\n", rmse);
     rmse = model.error(test_set1);
     printf("Val RMSE: %.3f\n", rmse);
-    
+
     vector<double> predictions = model.predict(test_set1);
     save_submission("svd++", "mu", "probe", predictions);
     predictions = model.predict(test_set2);
-    save_submission("svd", "mu", "qual", predictions);
+    save_submission("svd++", "mu", "qual", predictions);
 }

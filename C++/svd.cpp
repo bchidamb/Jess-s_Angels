@@ -36,17 +36,17 @@ class SVD {
     double **p; // user embeddings
     double **q; // movie embeddings
     int lf;
-    
+
     SVD(int n_users, int n_movies, int latent_factors) {
         lf = latent_factors;
         b_u = new double[n_users];
         b_m = new double[n_movies];
         p = Dynamic2DArray<double>(n_users, lf);
         q = Dynamic2DArray<double>(n_movies, lf);
-        
+
         default_random_engine generator;
         normal_distribution<double> distribution(0.0, 0.1);
-        
+
         for (int i = 0; i < n_users; i++) {
             b_u[i] = distribution(generator);
             for (int j = 0; j < lf; j++) {
@@ -60,7 +60,7 @@ class SVD {
             }
         }
     }
-    
+
     double pred_one(int u, int m) {
         double dot = 0.0;
         for (int i = 0; i < lf; i++) {
@@ -68,14 +68,14 @@ class SVD {
         }
         return (dot + b_u[u] + b_m[m] + mean);
     }
-    
-    double train(Dataset data, int epochs, double lr, double reg) {
+
+    void train(Dataset data, int epochs, double lr, double reg) {
         mean = accumulate(data.val.begin(), data.val.end(), 0.0) / data.row.size();
         vector<int> idx;
         for (int i = 0; i < data.row.size(); i++) {
             idx.push_back(i);
         }
-        
+
         for (int ep = 0; ep < epochs; ep++) {
             cout << "Epoch " << ep << endl;
             random_shuffle(idx.begin(), idx.end());
@@ -94,7 +94,7 @@ class SVD {
             }
         }
     }
-    
+
     vector<double> predict(Dataset data) {
         vector<double> pred;
         for(int i = 0; i < data.row.size(); i++) {
@@ -102,7 +102,7 @@ class SVD {
         }
         return pred;
     }
-    
+
     double error(Dataset data) {
         vector<double> pred = this->predict(data);
         double SE = 0.0;
@@ -123,7 +123,7 @@ Dataset load_data(string path) {
         data.col.push_back(c - 1);
         data.val.push_back(v);
     }
-    
+
     return data;
 }
 
@@ -134,9 +134,9 @@ void save_submission(string model_name, string ordering, string source, vector<d
     time (&rawtime);
     timeinfo = localtime(&rawtime);
     strftime(buffer,sizeof(buffer),"%b%d%H%M%S", timeinfo);
-    
+
     string path = "../submissions/" + ordering + "_" + model_name + "_" + source + "_" + buffer + ".pred";
-    
+
     FILE * file = fopen(path.c_str(), "w");
     for (double p: predictions) {
         fprintf(file, "%.3f\n", p);
@@ -145,34 +145,34 @@ void save_submission(string model_name, string ordering, string source, vector<d
 }
 
 int main(int argc, char *argv[]) {
-    
+
     cout << "Loading data..." << endl;
-    
+
     Dataset train_set = load_data("../data/mu_train.csv");
     Dataset test_set1 = load_data("../data/mu_probe.csv");
     Dataset test_set2 = load_data("../data/mu_qual.csv");
-    
+
     /*
     int n_users = 1 + (*max_element(train_set.row.begin(), train_set.row.end()));
     int n_movies = 1 + (*max_element(train_set.col.begin(), train_set.col.end()));
     */
-    
+
     cout << "Training model..." << endl;
-    
+
     clock_t t = clock();
-    
+
     SVD model(458293, 17770, 100);
     model.train(test_set1, 10, 0.005, 0.02);
-    
+
     double t_delta = (double) (clock() - t) / CLOCKS_PER_SEC;
-    
+
     printf("Training time: %.2f s\n", t_delta);
-    
+
     double rmse = model.error(test_set1);
     printf("Train RMSE: %.3f\n", rmse);
     rmse = model.error(test_set1);
     printf("Val RMSE: %.3f\n", rmse);
-    
+
     vector<double> predictions = model.predict(test_set1);
     save_submission("svd", "mu", "probe", predictions);
     predictions = model.predict(test_set2);

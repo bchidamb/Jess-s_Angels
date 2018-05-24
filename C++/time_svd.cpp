@@ -6,6 +6,7 @@
 #include <numeric>
 #include <random>
 #include <algorithm>
+#include <unordered_set>
 #include "csv.h"
 
 #define n_users 458293
@@ -18,11 +19,24 @@ class Dataset {
     vector<int> row; // user id
     vector<int> col; // movie id
     vector<int> val; // rating
+    //vector<int> date; // date
     // movies per user what movies each user has rated [row][col]
     vector<vector<int>> mpu;
+
+    // dates per user
+    vector<double> mean_date;
+    vector<vector<int>> dpu;
+    vector<unordered_set<int>> unique_dpu;
+
     Dataset() {
         vector<vector<int>> temp(n_users, vector<int>(0,0));
         mpu = temp;
+
+        vector<vector<int>> temp2(n_users, vector<int>(0,0));
+        dpu = temp2;
+
+        vector<unordered_set<int>> temp3(n_users, unordered_set<int>({}));
+        unique_dpu = temp3;
     }
 };
 
@@ -236,19 +250,39 @@ class SVDpp {
     }
 };
 
+//function to compute average
+double compute_average(std::vector<int> &vi) {
+
+  double sum = 0;
+
+  // iterate over all elements
+  for (int p:vi){
+     sum = sum + p;
+  }
+
+  return (sum/vi.size());
+ }
+
 // r user, c movie, v rating
 Dataset load_data(string path) {
     Dataset data;
 
-    io::CSVReader<3> in(path);
-    in.read_header(io::ignore_extra_column, "User Number", "Movie Number", "Rating");
+    io::CSVReader<4> in(path);
+    in.read_header(io::ignore_extra_column, "User Number", "Movie Number", "Date Number", "Rating");
 
-    int r, c, v;
-    while(in.read_row(r, c, v)) {
+    int r, c, t, v;
+    while(in.read_row(r, c, t, v)) {
         data.row.push_back(r - 1);
         data.col.push_back(c - 1);
         data.val.push_back(v);
         data.mpu[r-1].push_back(c - 1);
+        data.dpu[r-1].push_back(t);
+        data.unique_dpu[r-1].insert(t);
+    }
+
+    for(int i = 0; i < n_users; i++) {
+        double avg = compute_average(data.dpu[i]);
+        data.mean_date.push_back(avg);
     }
 
     return data;
@@ -303,7 +337,7 @@ int main(int argc, char *argv[]) {
     printf("Val RMSE: %.3f\n", rmse);
 
     vector<double> predictions = model.predict(test_set1);
-    save_submission("svd++", "mu", "probe", predictions);
+    save_submission("time_svd", "mu", "probe", predictions);
     predictions = model.predict(test_set2);
-    save_submission("svd++", "mu", "qual", predictions);
+    save_submission("time_svd", "mu", "qual", predictions);
 }
