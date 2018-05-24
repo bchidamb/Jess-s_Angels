@@ -162,13 +162,13 @@ int main(int argc, char *argv[]) {
     clock_t t = clock();
     
     SVD model(458293, 17770, 100);
-    model.train(train_set, 20, 0.005, 0.02);
+    model.train(test_set1, 10, 0.005, 0.02);
     
     double t_delta = (double) (clock() - t) / CLOCKS_PER_SEC;
     
     printf("Training time: %.2f s\n", t_delta);
     
-    double rmse = model.error(train_set);
+    double rmse = model.error(test_set1);
     printf("Train RMSE: %.3f\n", rmse);
     rmse = model.error(test_set1);
     printf("Val RMSE: %.3f\n", rmse);
