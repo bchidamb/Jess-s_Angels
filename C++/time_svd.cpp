@@ -6,6 +6,7 @@
 #include <numeric>
 #include <random>
 #include <algorithm>
+#include <unordered_set>
 #include "csv.h"
 
 #define n_users 458293
@@ -18,11 +19,24 @@ class Dataset {
     vector<int> row; // user id
     vector<int> col; // movie id
     vector<int> val; // rating
+    //vector<int> date; // date
     // movies per user what movies each user has rated [row][col]
     vector<vector<int>> mpu;
+
+    // dates per user
+    vector<double> mean_date;
+    vector<vector<int>> dpu;
+    vector<unordered_set<int>> unique_dpu;
+
     Dataset() {
         vector<vector<int>> temp(n_users, vector<int>(0,0));
         mpu = temp;
+
+        vector<vector<int>> temp2(n_users, vector<int>(0,0));
+        dpu = temp2;
+
+        vector<unordered_set<int>> temp3(n_users, unordered_set<int>({}));
+        unique_dpu = temp3;
     }
 };
 
@@ -159,28 +173,21 @@ class SVDpp {
     }
 
     // u user, m movie
-    double pred_one(int u, int m, vector<int> &r_u) {
-        
-        double sumY [lf] = {0.0};
-        for (int r_u_j: r_u) {
-            double *y_r_u_j = y[r_u_j];
-            for (int i = 0; i < lf; i++) {
-                sumY[i] += y_r_u_j[i];
-            }
-        }
-        double ru_negSqrt = 1.0 / sqrt(r_u.size());
-        
+    double pred_one(int u, int m, vector<int> r_u) {
         double dot = 0.0;
-        double *p_u = p[u];
-        double *q_m = q[m];
+        double sumY [lf] = {0};
+        double ru_negSqrt = 1.0 / pow(r_u.size(), 2.0);
+
         for (int i = 0; i < lf; i++){ // which latent factor
-            dot += (p_u[i] + ru_negSqrt * sumY[i]) * q_m[i];
+            for (int j = 0; j < r_u.size(); j++) { // movie watched, for user u
+                sumY[i] += y[r_u[j]][i];
+            }
+            dot += (p[u][i] + ru_negSqrt * sumY[i]) * q[m][i];
         }
-        
         return (dot + b_u[u] + b_m[m] + mean);
     }
 
-    void train(Dataset &data, int epochs, double lr, double reg) {
+    void train(Dataset data, int epochs, double lr, double reg) {
         mean = accumulate(data.val.begin(), data.val.end(), 0.0) / data.row.size();
         vector<int> idx;
         for (int i = 0; i < data.row.size(); i++) {
@@ -193,73 +200,95 @@ class SVDpp {
             for (int i = 0; i < data.row.size(); i++) {
                 int u = data.row[idx[i]];
                 int m = data.col[idx[i]];
-                
-                vector<int> &R_u = data.mpu[u];
-                double ru_negSqrt = 1.0 / sqrt(R_u.size());
-                
-                double dr = pred_one(u, m, R_u) - data.val[idx[i]];
-                
+                double dr = pred_one(u, m, data.mpu[u]) - data.val[idx[i]];
                 b_u[u] -= lr * (dr + reg * b_u[u]);
                 b_m[m] -= lr * (dr + reg * b_m[m]);
-                
-                double * p_u = p[u];
-                double * q_m = q[m];
-                double sumY [lf] = {0};
-                for (int R_u_k: R_u) {
-                    double * y_r_u_k = y[R_u_k];
-                    for (int j = 0; j < lf; j++) {
-                        sumY[j] += y_r_u_k[j];
-                        y_r_u_k[j] -= lr * (dr * q_m[j] * ru_negSqrt + reg * y_r_u_k[j]);
-                    }
-                }
-                
+
                 for (int j = 0; j < lf; j++) {
-                    double p_old = p_u[j];
-                    double q_old = q_m[j];
-                    p_u[j] -= lr * (dr * q_old + reg * p_old);
-                    q_m[j] -= lr * (dr * (p_old + ru_negSqrt * sumY[j]) + reg * q_old);
+                    double p_old = p[u][j];
+                    double q_old = q[m][j];
+                    double ru_negSqrt = 1.0 / pow(data.mpu[u].size(), 2.0);
+
+                    // the summation of the y's for all the movies a user
+                    // has watched with respect to latent factor j
+                    double sumY_mu = 0.0;
+                    for (int movInd = 0; movInd < data.mpu[u].size(); movInd++) {
+                            sumY_mu += y[data.mpu[u][movInd]][j];
+                    }
+
+                    p[u][j] -= lr * (dr * q_old + reg * p_old);
+                    q[m][j] -= lr * (dr * (p_old + ru_negSqrt * sumY_mu) + reg * q_old);
+
+                    // update y's here
+                    for (int movInd = 0; movInd < data.mpu[u].size(); movInd++) {
+                        double y_old = y[data.mpu[u][movInd]][j];
+                        y[data.mpu[u][movInd]][j] -= lr * (dr * q_old * ru_negSqrt + reg * y_old);
+                    }
                 }
             }
         }
     }
 
-    vector<double> predict(Dataset &data, Dataset &data_train) {
+    vector<double> predict(Dataset data) {
         vector<double> pred;
         for(int i = 0; i < data.row.size(); i++) {
-            pred.push_back(pred_one(data.row[i], data.col[i], data_train.mpu[data.row[i]]));
+            pred.push_back(pred_one(data.row[i], data.col[i], data.mpu[data.row[i]]));
         }
         return pred;
     }
 
-    double error(Dataset &data, Dataset &data_train) {
-        vector<double> pred = predict(data, data_train);
+    double error(Dataset data) {
+        cout<<"in error function"<<endl;
+        vector<double> pred = this->predict(data);
+        cout<<"prediction successful"<<endl;
         double SE = 0.0;
         for(int i = 0; i < data.row.size(); i++) {
             SE += pow(pred[i] - data.val[i], 2);
         }
+        cout<<"exiting error function"<<endl;
         return (pow(SE / data.row.size(), 0.5));
     }
 };
+
+//function to compute average
+double compute_average(std::vector<int> &vi) {
+
+  double sum = 0;
+
+  // iterate over all elements
+  for (int p:vi){
+     sum = sum + p;
+  }
+
+  return (sum/vi.size());
+ }
 
 // r user, c movie, v rating
 Dataset load_data(string path) {
     Dataset data;
 
-    io::CSVReader<3> in(path);
-    in.read_header(io::ignore_extra_column, "User Number", "Movie Number", "Rating");
+    io::CSVReader<4> in(path);
+    in.read_header(io::ignore_extra_column, "User Number", "Movie Number", "Date Number", "Rating");
 
-    int r, c, v;
-    while(in.read_row(r, c, v)) {
+    int r, c, t, v;
+    while(in.read_row(r, c, t, v)) {
         data.row.push_back(r - 1);
         data.col.push_back(c - 1);
         data.val.push_back(v);
         data.mpu[r-1].push_back(c - 1);
+        data.dpu[r-1].push_back(t);
+        data.unique_dpu[r-1].insert(t);
+    }
+
+    for(int i = 0; i < n_users; i++) {
+        double avg = compute_average(data.dpu[i]);
+        data.mean_date.push_back(avg);
     }
 
     return data;
 }
 
-void save_submission(string model_name, string ordering, string source, vector<double> &predictions) {
+void save_submission(string model_name, string ordering, string source, vector<double> predictions) {
     time_t rawtime;
     struct tm * timeinfo;
     char buffer[80];
@@ -277,7 +306,7 @@ void save_submission(string model_name, string ordering, string source, vector<d
 }
 
 int main(int argc, char *argv[]) {
-    int latentFactors = 20;
+    int latentFactors = 100;
     int epochs = 10;
     double lr = 0.005;
     double reg = 0.02;
@@ -295,22 +324,20 @@ int main(int argc, char *argv[]) {
     clock_t t = clock();
 
     SVDpp model(latentFactors);
-    cout<<"Model initalized! model used to train mu_train.csv"<<endl;
-    model.train(train_set, epochs, lr, reg);
+    cout<<"Model initalized! model used to train mu_probe.csv"<<endl;
+    model.train(test_set1, epochs, lr, reg);
 
     double t_delta = (double) (clock() - t) / CLOCKS_PER_SEC;
 
     printf("Training time: %.2f s\n", t_delta);
 
-    double rmse = model.error(train_set, train_set);
+    double rmse = model.error(test_set1);
     printf("Train RMSE: %.3f\n", rmse);
-    rmse = model.error(test_set1, train_set);
+    rmse = model.error(test_set1);
     printf("Val RMSE: %.3f\n", rmse);
 
-    /*
-    vector<double> predictions = model.predict(test_set1, train_set);
-    save_submission("svd++", "mu", "probe", predictions);
-    predictions = model.predict(test_set2, train_set);
-    save_submission("svd++", "mu", "qual", predictions);
-    */
+    vector<double> predictions = model.predict(test_set1);
+    save_submission("time_svd", "mu", "probe", predictions);
+    predictions = model.predict(test_set2);
+    save_submission("time_svd", "mu", "qual", predictions);
 }
