@@ -32,18 +32,25 @@ five = mu_idx.loc[mu_idx["Index"] == 5]
 five = five.index.tolist()
 print("Broke up indices")
 
+print()
 mu_train = mu_data.loc[one]
-mu_val = mu_data.loc[two]
+mu_val = mu_data.loc[two]#.drop(['Unnamed: 0'], axis=1).drop(['Unnamed: 0.1'], axis=1)
 mu_hidden  = mu_data.loc[three]
 mu_probe = mu_data.loc[four]
 mu_qual = mu_data.loc[five]
 print("Got indexed items in separate dataframes")
 
-mu_train.to_csv("data/mu_train.csv")
-mu_val.to_csv("data/mu_val.csv")
-mu_hidden.to_csv("data/mu_hidden.csv")
-mu_probe.to_csv("data/mu_probe.csv")
-mu_qual.to_csv("data/mu_qual.csv")
+# mu_train.to_csv("data/mu_train.csv")
+# mu_val.to_csv("data/mu_val.csv")
+# mu_hidden.to_csv("data/mu_hidden.csv")
+# mu_probe.to_csv("data/mu_probe.csv")
+# mu_qual.to_csv("data/mu_qual.csv")
+
+mu_train.to_csv("data/mu_train.txt", header=None, index=False, sep=' ')
+mu_val.to_csv("data/mu_val.txt", header=None, index=False, sep=' ')
+mu_hidden.to_csv("data/mu_hidden.txt", header=None, index=False, sep=' ')
+mu_probe.to_csv("data/mu_probe.txt", header=None, index=False, sep=' ')
+mu_qual.to_csv("data/mu_qual.txt", header=None, index=False, sep=' ')
 
 print("Loaded all mu data")
 
@@ -83,10 +90,16 @@ um_probe = um_data.loc[um_four]
 um_qual = um_data.loc[um_five]
 print("Got indexed items in separate dataframes")
 
-um_train.to_csv("data/um_train.csv")
-um_val.to_csv("data/um_val.csv")
-um_hidden.to_csv("data/um_hidden.csv")
-um_probe.to_csv("data/um_probe.csv")
-um_qual.to_csv("data/um_qual.csv")
+# um_train.to_csv("data/um_train.csv")
+# um_val.to_csv("data/um_val.csv")
+# um_hidden.to_csv("data/um_hidden.csv")
+# um_probe.to_csv("data/um_probe.csv")
+# um_qual.to_csv("data/um_qual.csv")
+
+um_train.to_csv("data/um_train.txt", header=None, index=False, sep=' ')
+um_val.to_csv("data/um_val.txt", header=None, index=False, sep=' ')
+um_hidden.to_csv("data/um_hidden.txt", header=None, index=False, sep=' ')
+um_probe.to_csv("data/um_probe.txt", header=None, index=False, sep=' ')
+um_qual.to_csv("data/um_qual.txt", header=None, index=False, sep=' ')
 
 print("Loaded all um data")
