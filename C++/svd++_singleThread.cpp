@@ -168,7 +168,7 @@ class SVDpp {
                 sumY[i] += y_r_u_j[i];
             }
         }
-        double ru_negSqrt = 1.0 / sqrt(r_u.size());
+        double ru_negSqrt = (r_u.size() > 0) ? (1.0 / sqrt(r_u.size())) : 0.0;
         
         double dot = 0.0;
         double *p_u = p[u];
@@ -180,7 +180,7 @@ class SVDpp {
         return (dot + b_u[u] + b_m[m] + mean);
     }
 
-    void train(Dataset &data, int epochs, double lr, double reg) {
+    void train(Dataset &data, Dataset &val_data, int epochs, double lr, double reg) {
         mean = accumulate(data.val.begin(), data.val.end(), 0.0) / data.row.size();
         vector<int> idx;
         for (int i = 0; i < data.row.size(); i++) {
@@ -188,6 +188,7 @@ class SVDpp {
         }
 
         for (int ep = 0; ep < epochs; ep++) {
+            cout << "Val RMSE: " << error(val_data, data) << endl;
             cout << "Epoch " << ep << endl;
             random_shuffle(idx.begin(), idx.end());
             for (int i = 0; i < data.row.size(); i++) {
@@ -195,7 +196,7 @@ class SVDpp {
                 int m = data.col[idx[i]];
                 
                 vector<int> &R_u = data.mpu[u];
-                double ru_negSqrt = 1.0 / sqrt(R_u.size());
+                double ru_negSqrt = (R_u.size() > 0) ? (1.0 / sqrt(R_u.size())) : 0.0;
                 
                 double dr = pred_one(u, m, R_u) - data.val[idx[i]];
                 
@@ -278,7 +279,7 @@ void save_submission(string model_name, string ordering, string source, vector<d
 
 int main(int argc, char *argv[]) {
     int latentFactors = 20;
-    int epochs = 10;
+    int epochs = 20;
     double lr = 0.005;
     double reg = 0.02;
 
@@ -296,7 +297,7 @@ int main(int argc, char *argv[]) {
 
     SVDpp model(latentFactors);
     cout<<"Model initalized! model used to train mu_train.csv"<<endl;
-    model.train(train_set, epochs, lr, reg);
+    model.train(train_set, test_set1, epochs, lr, reg);
 
     double t_delta = (double) (clock() - t) / CLOCKS_PER_SEC;
 
@@ -307,10 +308,9 @@ int main(int argc, char *argv[]) {
     rmse = model.error(test_set1, train_set);
     printf("Val RMSE: %.3f\n", rmse);
 
-    /*
     vector<double> predictions = model.predict(test_set1, train_set);
     save_submission("svd++", "mu", "probe", predictions);
     predictions = model.predict(test_set2, train_set);
     save_submission("svd++", "mu", "qual", predictions);
-    */
+    
 }

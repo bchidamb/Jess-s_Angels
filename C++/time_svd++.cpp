@@ -7,6 +7,7 @@
 #include <random>
 #include <algorithm>
 #include <unordered_set>
+#include <unordered_map>
 #include "csv.h"
 
 /*
@@ -295,10 +296,10 @@ class TimeSVDpp {
 
         for (int i = 0; i < n_users; i++) {
             b_u[i] = distribution(generator);
-            a_u[i] = distribution(generator);
+            a_u[i] = 0.1 * distribution(generator);
             for (int j = 0; j < lf; j++) {
                 p[i][j] = distribution(generator);
-                a_uk[i][j] = distribution(generator);
+                a_uk[i][j] = 0.1 * distribution(generator);
             }
         }
         for (int i = 0; i < n_movies; i++) {
@@ -311,38 +312,78 @@ class TimeSVDpp {
                 y[i][j] = distribution(generator);
             }
         }
+        
+        vector<unordered_map<int, double>> temp(n_users, unordered_map<int, double>({}));
+        b_ut = temp;
+        vector<unordered_map<int, double*>> temp2(n_users, unordered_map<int, double*>({}));
+        p_t = temp2;
     }
 
-    // u user, m movie
     double pred_one(int u, int m, vector<int> &r_u, int t, int bin_t) {
         
-        double sumY [lf] = {0};
-        for (int j = 0; j < r_u.size(); j++) {
-            double *y_r_u_j = y[r_u[j]];
+        double sumY [lf] = {0.0};
+        for (int r_u_j: r_u) {
+            double *y_r_u_j = y[r_u_j];
+            for (int i = 0; i < lf; i++) {
+                sumY[i] += y_r_u_j[i];
+            }
+        }
+        double ru_negSqrt = (r_u.size() > 0) ? (1.0 / sqrt(r_u.size())) : 0.0;
+        
+        double dt = t - u_tmean[u];
+        double dev_t = ((dt > 0) - (dt < 0)) * pow(fabs(dt), beta);
+        double b_u_t = b_u[u] + a_u[u] * dev_t + b_ut[u][t];
+        double b_m_t = b_m[m] + b_mt[m][bin_t];
+        
+        double dot = 0.0;
+        for (int i = 0; i < lf; i++){ // which latent factor
+            double p_u_t = p[u][i] + a_uk[u][i] * dev_t + p_t[u][t][i];
+            dot += (p_u_t + ru_negSqrt * sumY[i]) * q[m][i];
+        }
+        return (dot + b_u_t + b_m_t + mean);
+    }
+    
+    // u user, m movie
+    double pred_one_test(int u, int m, vector<int> &r_u, int t, int bin_t) {
+        
+        double sumY [lf] = {0.0};
+        for (int r_u_j: r_u) {
+            double *y_r_u_j = y[r_u_j];
             for (int i = 0; i < lf; i++) {
                 sumY[i] += y_r_u_j[i];
             }
         }
         
-        double d_t = t - u_tmean[u];
+        double dt = t - u_tmean[u];
         double dev_t = ((dt > 0) - (dt < 0)) * pow(fabs(dt), beta);
         double b_u_t = b_u[u] + a_u[u] * dev_t + b_ut[u][t];
         double b_m_t = b_m[m] + b_mt[m][bin_t];
         
         double *p_u = p[u];
         double *a_uk_u = a_uk[u];
-        double *p_ut_u_t = p_ut[u][t];
         double *q_m = q[m];
         double dot = 0.0;
-        double ru_negSqrt = 1.0 / pow(r_u.size(), 0.5);
-        for (int i = 0; i < lf; i++){ // which latent factor
-            double p_u_t = p_u[i] + a_uk_u[i] * dev_t + p_ut_u_t[i];
-            dot += (p_u_t + ru_negSqrt * sumY[i]) * q_m[i];
+        double ru_negSqrt = (r_u.size() > 0) ? (1.0 / sqrt(r_u.size())) : 0.0;
+        double p_u_t;
+        double *p_ut_u_t = p_t[u][t];
+        if (p_t[u][t] == NULL) {
+            for (int i = 0; i < lf; i++){ // which latent factor
+                p_u_t = p_u[i] + a_uk_u[i] * dev_t;
+                dot += (p_u_t + ru_negSqrt * sumY[i]) * q_m[i];
+            }
         }
+        else {
+            for (int i = 0; i < lf; i++){ // which latent factor
+                p_u_t = p_u[i] + a_uk_u[i] * dev_t + p_ut_u_t[i];
+                dot += (p_u_t + ru_negSqrt * sumY[i]) * q_m[i];
+            }
+        }
+        
         return (dot + b_u_t + b_m_t + mean);
     }
 
-    void train(Dataset &data, int epochs, double lr, double reg) {
+    void train(Dataset &data, Dataset &val_data, int epochs) {
+        
         mean = accumulate(data.val.begin(), data.val.end(), 0.0) / data.row.size();
         vector<int> idx;
         for (int i = 0; i < data.row.size(); i++) {
@@ -361,53 +402,68 @@ class TimeSVDpp {
                 }
             }
         }
-
+        
+        double decay = 1.0;
         for (int ep = 0; ep < epochs; ep++) {
+            // cout << "Train RMSE: " << error(data, data) << endl;
+            cout << "Val RMSE: " << error(val_data, data) << endl;
             cout << "Epoch " << ep << endl;
             random_shuffle(idx.begin(), idx.end());
             for (int i = 0; i < data.row.size(); i++) {
                 int u = data.row[idx[i]];
                 int m = data.col[idx[i]];
+                int t = data.day[idx[i]];
+                int bin_t = data.bin[idx[i]];
                 
-                vector<int> R_u = data.mpu[u];
-                double ru_negSqrt = 1.0 / pow(R_u.size(), 0.5);
+                vector<int> &R_u = data.mpu[u];
+                double ru_negSqrt = (R_u.size() > 0) ? (1.0 / sqrt(R_u.size())) : 0.0;
                 
-                double dr = pred_one(u, m, R_u) - data.val[idx[i]];
+                double dt = t - u_tmean[u];
+                double dev_t = ((dt > 0) - (dt < 0)) * pow(fabs(dt), beta);
                 
-                b_u[u] -= lr * (dr + reg * b_u[u]);
-                b_m[m] -= lr * (dr + reg * b_m[m]);
+                double dr = pred_one(u, m, R_u, t, bin_t) - data.val[idx[i]];
                 
-                double * p_u = p[u];
-                double * q_m = q[m];
+                b_u[u] -= (3e-3) * decay * (dr + (3e-2) * b_u[u]);
+                a_u[u] -= (3e-6) * decay * (dr * dev_t + 4.0 * a_u[u]);
+                b_ut[u][t] -= (3e-3) * decay * (dr + (3e-2) * b_ut[u][t]);
+                
+                b_m[m] -= (5e-4) * decay * (dr + (3e-2) * b_m[m]);
+                b_mt[m][bin_t] -= (1e-4) * decay * (dr + (10e-2) * b_mt[m][bin_t]);
+                
                 double sumY [lf] = {0};
+                
                 for (int k = 0; k < R_u.size(); k++) {
-                    double * y_r_u_k = y[R_u[k]];
+                    double *y_r_u_k = y[R_u[k]];
                     for (int j = 0; j < lf; j++) {
                         sumY[j] += y_r_u_k[j];
-                        y_r_u_k[j] -= lr * (dr * q_m[j] * ru_negSqrt + reg * y_r_u_k[j]);
+                        y_r_u_k[j] -= (0.008) * decay * (dr * q[m][j] * ru_negSqrt + (0.0015) * y_r_u_k[j]);
                     }
                 }
                 
                 for (int j = 0; j < lf; j++) {
-                    double p_old = p_u[j];
-                    double q_old = q_m[j];
-                    p_u[j] -= lr * (dr * q_old + reg * p_old);
-                    q_m[j] -= lr * (dr * (p_old + ru_negSqrt * sumY[j]) + reg * q_old);
+                    double p_old = p[u][j] + a_uk[u][j] * dev_t + p_t[u][t][j];
+                    double q_old = q[m][j];
+                    p[u][j] -= (0.008) * decay * (dr * q_old + (0.0015) * p[u][j]);
+                    a_uk[u][j] -= (1e-5) * (dr * q_old * dev_t + 50.0 * a_uk[u][j]);
+                    p_t[u][t][j] -= (0.004) * decay * (dr * q_old + (0.01) * p_t[u][t][j]);
+                    q[m][j] -= (0.008) * decay * (dr * (p_old + ru_negSqrt * sumY[j]) + (0.0015) * q[m][j]);
                 }
             }
+            
+            decay *= 1.0;
         }
     }
 
-    vector<double> predict(Dataset &data) {
+    vector<double> predict(Dataset &data, Dataset &train_data) {
         vector<double> pred;
         for(int i = 0; i < data.row.size(); i++) {
-            pred.push_back(pred_one(data.row[i], data.col[i], data.mpu[data.row[i]]));
+            pred.push_back(pred_one_test(data.row[i], data.col[i], train_data.mpu[data.row[i]], data.day[i], data.bin[i]));
         }
         return pred;
     }
 
-    double error(Dataset &data) {
-        vector<double> pred = this->predict(data);
+    double error(Dataset &data, Dataset &train_data) {
+        vector<double> pred = predict(data, train_data);
         double SE = 0.0;
         for(int i = 0; i < data.row.size(); i++) {
             SE += pow(pred[i] - data.val[i], 2);
@@ -418,26 +474,33 @@ class TimeSVDpp {
 
 //function to compute average
 double compute_average(vector<int> &vi) {
+    
+    double sum = 0;
 
-  double sum = 0;
-
-  // iterate over all elements
-  for (int p:vi){
+    // iterate over all elements
+    for (int p:vi){
      sum = sum + p;
-  }
+    }
 
-  return (sum/vi.size());
- }
+    if (vi.size() > 0) {
+      return (sum/vi.size());
+    }
+    else {
+      return 0.0;
+    }
+}
 
 // r user, c movie, v rating
 Dataset load_data(string path) {
     Dataset data;
 
-    io::CSVReader<4> in(path);
+    io::CSVReader<5> in(path);
     in.read_header(io::ignore_extra_column, "User Number", "Movie Number", "Date Number", "Rating", "bin");
 
+    int limit = 20000000;
+    int l = 0;
     int r, c, t, v, b;
-    while(in.read_row(r, c, t, v, b)) {
+    while(in.read_row(r, c, t, v, b) && l < limit) {
         data.row.push_back(r - 1);
         data.col.push_back(c - 1);
         data.val.push_back(v);
@@ -446,6 +509,7 @@ Dataset load_data(string path) {
         data.mpu[r-1].push_back(c - 1);
         data.dpu[r-1].push_back(t);
         data.unique_dpu[r-1].insert(t);
+        l++;
     }
 
     for(int i = 0; i < n_users; i++) {
@@ -476,14 +540,14 @@ void save_submission(string model_name, string ordering, string source, vector<d
 int main(int argc, char *argv[]) {
     int latentFactors = 20;
     int epochs = 10;
-    double lr = 0.005;
-    double reg = 0.02;
+    double lr = 0.008;   //
+    double reg = 0.0015; // these parameters are currently hardcoded
 
     cout << "Loading data..." << endl;
 
     Dataset train_set = load_data("../data/mu_train.csv");
     Dataset test_set1 = load_data("../data/mu_probe.csv");
-    Dataset test_set2 = load_data("../data/mu_qual.csv");
+    Dataset test_set2 = load_data("../data/mu_val.csv");
 
     cout << "Training model..." << endl;
     cout << "Using "<< latentFactors <<" latent factors "<<endl;
@@ -491,23 +555,23 @@ int main(int argc, char *argv[]) {
 
     clock_t t = clock();
 
-    SVDpp model(latentFactors);
+    TimeSVDpp model(latentFactors);
     cout<<"Model initalized! model used to train mu_probe.csv"<<endl;
-    model.train(test_set1, epochs, lr, reg);
+    model.train(train_set, test_set1, epochs);
 
     double t_delta = (double) (clock() - t) / CLOCKS_PER_SEC;
 
     printf("Training time: %.2f s\n", t_delta);
 
-    double rmse = model.error(test_set1);
+    double rmse = model.error(train_set, train_set);
     printf("Train RMSE: %.3f\n", rmse);
-    rmse = model.error(test_set1);
+    rmse = model.error(test_set1, train_set);
     printf("Val RMSE: %.3f\n", rmse);
     
     /* UNCOMMENT TO SAVE SUBMISSION
-    vector<double> predictions = model.predict(test_set1);
+    vector<double> predictions = model.predict(test_set1, train_set);
     save_submission("time_svd++", "mu", "probe", predictions);
-    predictions = model.predict(test_set2);
+    predictions = model.predict(test_set2, train_set);
     save_submission("time_svd++", "mu", "qual", predictions);
     */
 }
