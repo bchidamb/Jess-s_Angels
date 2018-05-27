@@ -12,16 +12,18 @@ import gc
 
 
 # Input the filenames of the prediction files for all modles
-probe_names = ["submissions/mu_svd_probe_May23195204.pred",
+probe_names = ["submissions/final blend/mu_svd_probe_May25041116_rmse918.pred",
+                "submissions/final blend/mu_svd++_probe_May25155049_rmse917.pred",
                 "pmf/predictionsl005k65t10"]
-qual_names = ["submissions/mu_svd_qual_May23195205.pred",
+qual_names = ["submissions/final blend/mu_svd_qual_May25041117_rmse91993.pred",
+                "submissions/final blend/mu_svd++_qual_May25155100_rmse91912.pred",
                 "pmf/predictionsl005k65t10qual"]
 num_models = len(probe_names)
 
 probe_length = 1374739
 qual_length = 2749898
 
-method = 1  #1: single layer, 2: 20-40 layers
+method = 2  #1: single layer, 2: 20-40 layers
 n_hidden = 30
 ordering = 'mu' # rows correspond to movie_ids; cols correspond to user_ids
 submit = True # set to True to save a submission on qual
@@ -77,7 +79,7 @@ print("probe train dim:", probe_list.ndim)
 print("probe test dim:", probeSet.ndim)
 
 print("qual train dim:", qual_list.ndim)
-print("qual test dim:", qualSet.ndim)
+#print("qual test dim:", qualSet.ndim)
 #print(qual_list[0])
 
 
@@ -85,13 +87,13 @@ print("qual test dim:", qualSet.ndim)
 # and Relu activation
 if method == 2:
     nnmodel = Sequential()
-    nnmodel.add(Dense(n_hidden, input_dim=num_models, activation="relu"))
-    nnmodel.add(Dense(1, input_dim=num_models, activation="sigmoid"))
+    nnmodel.add(Dense(n_hidden, input_dim=num_models))
+    nnmodel.add(Dense(1, input_dim=num_models, activation="relu"))
 
-elif method == 1:
+if method == 1:
     # Feed into neural network
     nnmodel = Sequential()
-    nnmodel.add(Dense(1, input_dim=num_models))
+    nnmodel.add(Dense(1, input_dim=num_models, activation="relu"))
 
 nnmodel.compile(loss='mean_squared_error',
               optimizer='adam',
@@ -102,6 +104,14 @@ blend_pred = nnmodel.predict(qual_list)
 #blend_RMSE = RMSE(qualSet, blend_pred)
 #print("RMSE for blended model:", blend_RMSE)
 
+# Truncate results between 1 and 5
+for i in range(2749898):
+    if blend_pred[i] < 1.0:
+        blend_pred[i] = 1.0
+    elif blend_pred[i] > 5.0:
+        blend_pred[i] = 5.0
+
+
 if save_model:
 
     print('Saving model...')
@@ -109,4 +119,4 @@ if save_model:
 
 # Profit
 if submit:
-    save_submission("blend1", blend_pred, ordering)
+    save_submission("blendn30", blend_pred, ordering)
