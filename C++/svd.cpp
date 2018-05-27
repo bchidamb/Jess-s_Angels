@@ -117,6 +117,7 @@ Dataset load_data(string path) {
     Dataset data;
     io::CSVReader<3> in(path);
     in.read_header(io::ignore_extra_column, "User Number", "Movie Number", "Rating");
+    
     int r, c, v;
     while(in.read_row(r, c, v)) {
         data.row.push_back(r - 1);
@@ -152,29 +153,25 @@ int main(int argc, char *argv[]) {
     Dataset test_set1 = load_data("../data/mu_probe.csv");
     Dataset test_set2 = load_data("../data/mu_qual.csv");
 
-    /*
-    int n_users = 1 + (*max_element(train_set.row.begin(), train_set.row.end()));
-    int n_movies = 1 + (*max_element(train_set.col.begin(), train_set.col.end()));
-    */
-
     cout << "Training model..." << endl;
 
     clock_t t = clock();
 
-    SVD model(458293, 17770, 100);
-    model.train(test_set1, 10, 0.005, 0.02);
+    SVD model(458293, 17770, 20);
+    model.train(train_set, 20, 0.005, 0.02);
 
     double t_delta = (double) (clock() - t) / CLOCKS_PER_SEC;
 
     printf("Training time: %.2f s\n", t_delta);
 
-    double rmse = model.error(test_set1);
+    double rmse = model.error(train_set);
     printf("Train RMSE: %.3f\n", rmse);
     rmse = model.error(test_set1);
     printf("Val RMSE: %.3f\n", rmse);
-
+    
     vector<double> predictions = model.predict(test_set1);
     save_submission("svd", "mu", "probe", predictions);
     predictions = model.predict(test_set2);
     save_submission("svd", "mu", "qual", predictions);
+    
 }
