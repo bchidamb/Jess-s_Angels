@@ -241,7 +241,7 @@ class TimeSVDpp {
                     }
                 }
                 
-                random_shuffle(data.user_data[u].entries.begin(), data.user_data[u].entries.end())
+                random_shuffle(data.user_data[u].entries.begin(), data.user_data[u].entries.end());
                 
                 for (Example ex: data.user_data[u].entries) {
                     int m = ex.m;
