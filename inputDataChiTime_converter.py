@@ -23,6 +23,7 @@ def fileToMatrixMarket_MU(fileName, label, maxUsers, maxMovies, maxTime):
     df = pd.read_csv(os.path.join('data', fileName))
     # modify data fram to get rid of data we're not using
     del df['Unnamed: 0']
+    del df['bin']
     #del df['Date Number']
     df = df.astype('int32')
     

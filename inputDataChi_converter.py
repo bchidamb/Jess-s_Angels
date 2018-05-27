@@ -24,6 +24,7 @@ def fileToMatrixMarket_MU(fileName, label, maxUsers, maxMovies):
     # modify data fram to get rid of data we're not using
     del df['Unnamed: 0']
     del df['Date Number']
+    def df['bin'] # from our bin stuff
     df = df.astype('int32')
     
     # assume that our first read in file has the number of users and movies

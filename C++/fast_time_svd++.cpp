@@ -80,7 +80,7 @@ class TimeSVDpp {
     double reg_b_ut = 5e-4;
     double reg_b_m = 3e-2;
     double reg_b_mt = 0.1;
-    double reg_lf = 0.015;
+    double reg_lf = 0.015; 
     double reg_a_uk = 50.0;
     
     int lf;
