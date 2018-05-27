@@ -23,17 +23,12 @@ using namespace std;
 
 struct Example {
     int m;
-    int t;
     int r;
-    int bin_t;
-    // double dev_t;
 };
 
 struct UserData {
     vector<Example> entries;
     vector<int> R_u;
-    unordered_set<int> dates;
-    double mean_t;
 };
 
 struct Dataset {
@@ -53,81 +48,44 @@ T** Dynamic2DArray(int w, int h) {
     return arr;
 }
 
-class TimeSVDpp {
+class SVDpp {
     public:
     double mean; // average of all ratings (constant)
     double *b_u; // user biases
-    double *a_u; // user dev-time biases
-    vector< unordered_map<int, double> > b_ut; // user time biases, initialize at train time
     double *b_m; // movie biases
-    double **b_mt; // movie time-bin biases
     double **p; // user embeddings
-    double **a_uk; // user dev-time embeddings
-    // vector< unordered_map<int, double*> > p_t; // user time embeddings, allocate and initialize at train time
     double **q; // movie embeddings
     double **y; // implicit latent factor
-    double *u_tmean; // average user times (constant), assign at train time
-    
-    double lr_b_u = 3e-3;
-    double lr_a_u = 1e-5;
-    double lr_b_ut = 3e-3;
-    double lr_b_m = 2e-3;
-    double lr_b_mt = 5e-5;
-    double lr_lf = 0.008;
-    double lr_a_uk = 1e-5;
-    double reg_b_u = 3e-2;
-    double reg_a_u = 50.0;
-    double reg_b_ut = 5e-4;
-    double reg_b_m = 3e-2;
-    double reg_b_mt = 0.1;
-    double reg_lf = 0.015;
-    double reg_a_uk = 50.0;
     
     int lf;
 
-    TimeSVDpp(int latent_factors) {
+    SVDpp(int latent_factors) {
         lf = latent_factors;
         b_u = new double[n_users];
-        a_u = new double[n_users];
         b_m = new double[n_movies];
-        b_mt = Dynamic2DArray<double>(n_movies, n_bins);
         p = Dynamic2DArray<double>(n_users, lf);
-        a_uk = Dynamic2DArray<double>(n_users, lf);
         q = Dynamic2DArray<double>(n_movies, lf);
         y = Dynamic2DArray<double>(n_movies, lf);
-        u_tmean = new double[n_users];
 
         default_random_engine generator;
         normal_distribution<double> distribution(0.0, 0.1);
 
         for (int i = 0; i < n_users; i++) {
             b_u[i] = 0.0;
-            a_u[i] = 0.0;
             for (int j = 0; j < lf; j++) {
                 p[i][j] = distribution(generator);
-                a_uk[i][j] = 0.0;
             }
         }
         for (int i = 0; i < n_movies; i++) {
             b_m[i] = 0.0;
-            for (int b = 0; b < n_bins; b++) {
-                b_mt[i][b] = 0.0;
-            }
             for (int j = 0; j < lf; j++) {
                 q[i][j] = distribution(generator);
-                y[i][j] = 0.0;
+                y[i][j] = distribution(generator);
             }
         }
-        
-        vector<unordered_map<int, double>> temp(n_users, unordered_map<int, double>({}));
-        b_ut = temp;
-        /*
-        vector<unordered_map<int, double*>> temp2(n_users, unordered_map<int, double*>({}));
-        p_t = temp2;
-        */
     }
 
-    double pred_one(int &u, int &m, double ** &y_r_u, int ru_size, double &ru_negSqrt, int &t, int &bin_t, double &dev_t) {
+    double pred_one(int &u, int &m, double ** &y_r_u, int ru_size, double &ru_negSqrt) {
         
         double sumY [lf] = {0.0};
         for (int k = 0; k < ru_size; k++) {
@@ -136,23 +94,17 @@ class TimeSVDpp {
                 sumY[i] += y_r_u_k[i];
             }
         }
-        double b_u_t = b_u[u] + a_u[u] * dev_t + b_ut[u][t];
-        double b_m_t = b_m[m] + b_mt[m][bin_t];
-        
         double * p_u = p[u];
         double * q_m = q[m];
-        double * a_uk_u = a_uk[u];
-        // double * p_t_u_t = p_t[u][t];
         double dot = 0.0;
         for (int i = 0; i < lf; i++){ // which latent factor
-            double p_u_t = p_u[i] + a_uk_u[i] * dev_t  /*+ p_t_u_t[i] */;
-            dot += (p_u_t + ru_negSqrt * sumY[i]) * q_m[i];
+            dot += (p_u[i] + ru_negSqrt * sumY[i]) * q_m[i];
         }
-        return (dot + b_u_t + b_m_t + mean);
+        return (dot + b_u[u] + b_m[m] + mean);
     }
     
     // u user, m movie
-    double pred_one_test(int u, int m, vector<int> &r_u, int t, int bin_t) {
+    double pred_one_test(int u, int m, vector<int> &r_u) {
         
         double sumY [lf] = {0.0};
         for (int r_u_j: r_u) {
@@ -162,65 +114,30 @@ class TimeSVDpp {
             }
         }
         
-        double dt = t - u_tmean[u];
-        double dev_t = ((dt > 0) - (dt < 0)) * pow(fabs(dt), beta);
-        double b_u_t = b_u[u] + a_u[u] * dev_t + b_ut[u][t];
-        double b_m_t = b_m[m] + b_mt[m][bin_t];
-        
         double *p_u = p[u];
-        double *a_uk_u = a_uk[u];
         double *q_m = q[m];
         double dot = 0.0;
         double ru_negSqrt = (r_u.size() > 0) ? (1.0 / sqrt(r_u.size())) : 0.0;
         
-        double p_u_t;
-        /*
-        double *p_ut_u_t = p_t[u][t];
-        if (p_t[u][t] == NULL) {
-            for (int i = 0; i < lf; i++){ // which latent factor
-                p_u_t = p_u[i] + a_uk_u[i] * dev_t;
-                dot += (p_u_t + ru_negSqrt * sumY[i]) * q_m[i];
-            }
-        }
-        else {
-            for (int i = 0; i < lf; i++){ // which latent factor
-                p_u_t = p_u[i] + a_uk_u[i] * dev_t + p_ut_u_t[i];
-                dot += (p_u_t + ru_negSqrt * sumY[i]) * q_m[i];
-            }
-        }
-        */
         // BEGIN temp block
         for (int i = 0; i < lf; i++){ // which latent factor
-            p_u_t = p_u[i] + a_uk_u[i] * dev_t;
-            dot += (p_u_t + ru_negSqrt * sumY[i]) * q_m[i];
+            dot += (p_u[i] + ru_negSqrt * sumY[i]) * q_m[i];
         }
         // END temp block
         
-        return (dot + b_u_t + b_m_t + mean);
+        return (dot + b_u[u] + b_m[m] + mean);
     }
 
     void train(Dataset &data, Dataset &val_data, int epochs) {
         
         mean = data.mean;
         
-        for (int u = 0; u < n_users; u++) {
-            u_tmean[u] = data.user_data[u].mean_t;
-            for (int t: data.user_data[u].dates) {
-                b_ut[u][t] = 0.0;
-                /*
-                p_t[u][t] = new double[lf];
-                for (int i = 0; i < lf; i++) {
-                    p_t[u][t][i] = 0.0;
-                }
-                */
-            }
-        }
-        
         vector<int> idx;
         for (int i = 0; i < n_users; i++) {
             idx.push_back(i);
         }
         
+        double decay = 1.0;
         for (int ep = 0; ep < epochs; ep++) {
             
             // cout << "Train RMSE: " << error(data, data) << endl;
@@ -231,7 +148,6 @@ class TimeSVDpp {
             for (int u: idx) {
                 vector<int> &R_u = data.user_data[u].R_u;
                 double ru_negSqrt = (R_u.size() > 0) ? (1.0 / sqrt(R_u.size())) : 0.0;
-                double mean_t = data.user_data[u].mean_t;
                 
                 double **y_r_u = Dynamic2DArray<double>(R_u.size(), lf);
                 
@@ -241,46 +157,33 @@ class TimeSVDpp {
                     }
                 }
                 
-                random_shuffle(data.user_data[u].entries.begin(), data.user_data[u].entries.end())
+                // random_shuffle(data.user_data[u].entries.begin(), data.user_data[u].entries.end());
                 
                 for (Example ex: data.user_data[u].entries) {
                     int m = ex.m;
-                    int t = ex.t;
-                    int bin_t = ex.bin_t;
                     
-                    double dt = t - mean_t;
-                    double dev_t = ((dt > 0) - (dt < 0)) * pow(fabs(dt), beta);
+                    double dr = pred_one(u, m, y_r_u, R_u.size(), ru_negSqrt) - ex.r;
                     
-                    double dr = pred_one(u, m, y_r_u, R_u.size(), ru_negSqrt, t, bin_t, dev_t) - ex.r;
-                    
-                    b_u[u] -= lr_b_u * (dr + reg_b_u * b_u[u]);
-                    a_u[u] -= lr_a_u * (dr * dev_t + reg_a_u * a_u[u]);
-                    b_ut[u][t] -= lr_b_ut * (dr + reg_b_ut * b_ut[u][t]);
-                    
-                    b_m[m] -= lr_b_m * (dr + reg_b_m * b_m[m]);
-                    b_mt[m][bin_t] -= lr_b_mt * (dr + reg_b_mt * b_mt[m][bin_t]);
+                    b_u[u] -= (3e-3) * decay * (dr + (3e-2) * b_u[u]);
+                    b_m[m] -= (2e-3) * decay * (dr + (3e-2) * b_m[m]);
                     
                     double sumY [lf] = {0};
                     
                     double * q_m = q[m];
                     double * p_u = p[u];
-                    double * a_uk_u = a_uk[u];
-                    // double * p_ut_u_t = p_t[u][t];
                     for (int k = 0; k < R_u.size(); k++) {
                         double *y_r_u_k = y_r_u[k];
                         for (int j = 0; j < lf; j++) {
                             sumY[j] += y_r_u_k[j];
-                            y_r_u_k[j] -= lr_lf * (dr * q_m[j] * ru_negSqrt + reg_lf * y_r_u_k[j]);
+                            y_r_u_k[j] -= (0.007) * decay * (dr * q_m[j] * ru_negSqrt + (0.015) * y_r_u_k[j]);
                         }
                     }
                     
                     for (int j = 0; j < lf; j++) {
-                        double p_old = p_u[j] + a_uk_u[j] * dev_t /*+ p_ut_u_t[j]*/;
+                        double p_old = p_u[j];
                         double q_old = q_m[j];
-                        p_u[j] -= lr_lf * (dr * q_old + reg_lf * p_u[j]);
-                        a_uk_u[j] -= lr_a_uk * (dr * q_old * dev_t + reg_a_uk * a_uk_u[j]);
-                        // p_ut_u_t[j] -= (0.004) * decay * (dr * q_old + (0.01) * p_ut_u_t[j]);
-                        q_m[j] -= lr_lf * (dr * (p_old + ru_negSqrt * sumY[j]) + reg_lf * q_m[j]);
+                        p_u[j] -= (0.007) * decay * (dr * q_old + (0.015) * p_u[j]);
+                        q_m[j] -= (0.007) * decay * (dr * (p_old + ru_negSqrt * sumY[j]) + (0.015) * q_m[j]);
                     }
                 }
                 
@@ -294,13 +197,7 @@ class TimeSVDpp {
                 delete[] y_r_u;
             }
             
-            lr_b_u *= 0.9;
-            lr_a_u *= 0.9;
-            lr_b_ut *= 0.9;
-            lr_b_m *= 0.9;
-            lr_b_mt *= 0.9;
-            lr_lf *= 0.9;
-            lr_a_uk *= 0.9;
+            decay *= 0.9;
         }
         
     }
@@ -310,7 +207,7 @@ class TimeSVDpp {
         for(int u = 0; u < n_users; u++) {
             vector<int> R_u = train_data.user_data[u].R_u;
             for(Example ex: data.user_data[u].entries) {
-                pred.push_back(pred_one_test(u, ex.m, R_u, ex.t, ex.bin_t));
+                pred.push_back(pred_one_test(u, ex.m, R_u));
             }
         }
         return pred;
@@ -355,29 +252,20 @@ Dataset load_data(string path) {
     Dataset data;
     data.user_data.resize(n_users);
 
-    io::CSVReader<5> in(path);
-    in.read_header(io::ignore_extra_column, "User Number", "Movie Number", "Date Number", "Rating", "bin");
+    io::CSVReader<3> in(path);
+    in.read_header(io::ignore_extra_column, "User Number", "Movie Number", "Rating");
     
     double sum = 0.0;
     data.n_examples = 0;
-    int u, m, t, r, bin_t;
-    while(in.read_row(u, m, t, r, bin_t)) {
-        Example ex = {m-1, t, r, bin_t};
+    int u, m, r;
+    while(in.read_row(u, m, r)) {
+        Example ex = {m-1, r};
         data.user_data[u-1].entries.push_back(ex);
-        data.user_data[u-1].dates.insert(t);
         data.user_data[u-1].R_u.push_back(m-1);
         sum += r;
         data.n_examples++;
     }
     data.mean = sum / data.n_examples;
-    for(int u = 0; u < n_users; u++) {
-        vector<int> times;
-        for (Example ex: data.user_data[u].entries) {
-            times.push_back(ex.t);
-        }
-        double avg = compute_average(times);
-        data.user_data[u].mean_t = avg;
-    }
 
     return data;
 }
@@ -417,7 +305,7 @@ int main(int argc, char *argv[]) {
 
     clock_t t = clock();
 
-    TimeSVDpp model(latentFactors);
+    SVDpp model(latentFactors);
     cout<<"Model initalized! model used to train um_train.csv"<<endl;
     model.train(train_set, test_set1, epochs);
 
