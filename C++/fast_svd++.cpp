@@ -57,6 +57,9 @@ class SVDpp {
     double **q; // movie embeddings
     double **y; // implicit latent factor
     
+    double *sumY;  //
+    double *gradY; // used to batch gradient updates of y for a given user
+    
     int lf;
 
     SVDpp(int latent_factors) {
@@ -66,6 +69,9 @@ class SVDpp {
         p = Dynamic2DArray<double>(n_users, lf);
         q = Dynamic2DArray<double>(n_movies, lf);
         y = Dynamic2DArray<double>(n_movies, lf);
+        
+        sumY = new double[lf];
+        gradY = new double[lf];
 
         default_random_engine generator;
         normal_distribution<double> distribution(0.0, 0.1);
@@ -80,20 +86,13 @@ class SVDpp {
             b_m[i] = 0.0;
             for (int j = 0; j < lf; j++) {
                 q[i][j] = distribution(generator);
-                y[i][j] = distribution(generator);
+                y[i][j] = 0.0;
             }
         }
     }
 
-    double pred_one(int &u, int &m, double ** &y_r_u, int ru_size, double &ru_negSqrt) {
+    double pred_one(int &u, int &m, double &ru_negSqrt) {
         
-        double sumY [lf] = {0.0};
-        for (int k = 0; k < ru_size; k++) {
-            double *y_r_u_k = y_r_u[k];
-            for (int i = 0; i < lf; i++) {
-                sumY[i] += y_r_u_k[i];
-            }
-        }
         double * p_u = p[u];
         double * q_m = q[m];
         double dot = 0.0;
@@ -106,7 +105,9 @@ class SVDpp {
     // u user, m movie
     double pred_one_test(int u, int m, vector<int> &r_u) {
         
-        double sumY [lf] = {0.0};
+        for(int i = 0; i < lf; i++) {
+            sumY[i] = 0.0;
+        }
         for (int r_u_j: r_u) {
             double *y_r_u_j = y[r_u_j];
             for (int i = 0; i < lf; i++) {
@@ -119,11 +120,9 @@ class SVDpp {
         double dot = 0.0;
         double ru_negSqrt = (r_u.size() > 0) ? (1.0 / sqrt(r_u.size())) : 0.0;
         
-        // BEGIN temp block
         for (int i = 0; i < lf; i++){ // which latent factor
             dot += (p_u[i] + ru_negSqrt * sumY[i]) * q_m[i];
         }
-        // END temp block
         
         return (dot + b_u[u] + b_m[m] + mean);
     }
@@ -149,52 +148,44 @@ class SVDpp {
                 vector<int> &R_u = data.user_data[u].R_u;
                 double ru_negSqrt = (R_u.size() > 0) ? (1.0 / sqrt(R_u.size())) : 0.0;
                 
-                double **y_r_u = Dynamic2DArray<double>(R_u.size(), lf);
-                
-                for (int k = 0; k < R_u.size(); k++) {
+                for(int j = 0; j < lf; j++) {
+                    sumY[j] = 0.0;
+                    gradY[j] = 0.0;
+                }
+                for (int R_u_k: R_u) {
                     for (int j = 0; j < lf; j++) {
-                        y_r_u[k][j] = y[R_u[k]][j];
+                        sumY[j] += y[R_u_k][j];
                     }
                 }
                 
-                // random_shuffle(data.user_data[u].entries.begin(), data.user_data[u].entries.end());
+                random_shuffle(data.user_data[u].entries.begin(), data.user_data[u].entries.end());
                 
                 for (Example ex: data.user_data[u].entries) {
                     int m = ex.m;
                     
-                    double dr = pred_one(u, m, y_r_u, R_u.size(), ru_negSqrt) - ex.r;
+                    double dr = pred_one(u, m, ru_negSqrt) - ex.r;
                     
-                    b_u[u] -= (3e-3) * decay * (dr + (3e-2) * b_u[u]);
-                    b_m[m] -= (2e-3) * decay * (dr + (3e-2) * b_m[m]);
-                    
-                    double sumY [lf] = {0};
+                    b_u[u] -= (0.007) * decay * (dr + (0.005) * b_u[u]);
+                    b_m[m] -= (0.007) * decay * (dr + (0.005) * b_m[m]);
                     
                     double * q_m = q[m];
                     double * p_u = p[u];
-                    for (int k = 0; k < R_u.size(); k++) {
-                        double *y_r_u_k = y_r_u[k];
-                        for (int j = 0; j < lf; j++) {
-                            sumY[j] += y_r_u_k[j];
-                            y_r_u_k[j] -= (0.007) * decay * (dr * q_m[j] * ru_negSqrt + (0.015) * y_r_u_k[j]);
-                        }
-                    }
                     
                     for (int j = 0; j < lf; j++) {
                         double p_old = p_u[j];
                         double q_old = q_m[j];
+                        gradY[j] += dr * q_m[j] * ru_negSqrt;
                         p_u[j] -= (0.007) * decay * (dr * q_old + (0.015) * p_u[j]);
                         q_m[j] -= (0.007) * decay * (dr * (p_old + ru_negSqrt * sumY[j]) + (0.015) * q_m[j]);
                     }
                 }
                 
-                for (int k = 0; k < R_u.size(); k++) {
+                for (int R_u_k: R_u) {
+                    double * y_r_u_k = y[R_u_k];
                     for (int j = 0; j < lf; j++) {
-                        y[R_u[k]][j] = y_r_u[k][j];
+                        y_r_u_k[j] -= (0.007) * decay * (gradY[j] + 0.015 * y_r_u_k[j]);
                     }
                 }
-                
-                delete[] y_r_u[0];
-                delete[] y_r_u;
             }
             
             decay *= 0.9;
@@ -290,8 +281,8 @@ void save_submission(string model_name, string ordering, string source, vector<d
 int main(int argc, char *argv[]) {
     int latentFactors = 20;
     int epochs = 20;
-    double lr = 0.008;   //
-    double reg = 0.0015; // these parameters are currently hardcoded
+    double lr = 0.007;   //
+    double reg = 0.015; // these parameters are currently hardcoded
 
     cout << "Loading data..." << endl;
 
@@ -312,15 +303,15 @@ int main(int argc, char *argv[]) {
     double t_delta = (double) (clock() - t) / CLOCKS_PER_SEC;
 
     printf("Training time: %.2f s\n", t_delta);
-
+    
     double rmse = model.error(train_set, train_set);
     printf("Train RMSE: %.3f\n", rmse);
     rmse = model.error(test_set1, train_set);
     printf("Val RMSE: %.3f\n", rmse);
-    
+    /*
     vector<double> predictions = model.predict(test_set1, train_set);
     save_submission("time_svd++", "um", "probe", predictions);
     predictions = model.predict(test_set2, train_set);
     save_submission("time_svd++", "um", "qual", predictions);
-    
+    */
 }
