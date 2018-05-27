@@ -28,7 +28,7 @@ def splitFile(fileName, label1, label2):
     with open(label1, 'w') as fout:
         fout.writelines(data[:2749899])
     with open(label2, 'w') as fout1:
-        fout1.writelines(data[2749899:])
+        fout1.writelines(data[2749898:])
 
 
 def deleteColumns(fileName):
