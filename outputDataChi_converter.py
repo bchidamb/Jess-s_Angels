@@ -61,7 +61,7 @@ def fileToPrediction_MU(fileName, label, label1, lines):
     
 model = 'rbm'
 fileOutLabelPred = 'mu_'+ model + '_graphchi' + strftime('%b%d%h%M%S') + '.pred'
-fileOutLabelProbe = 'mu_' + model + '_graphchi' + strftime('%b%d%h%M%S') + '.val'
+fileOutLabelProbe = 'mu_' + model + '_graphchi' + strftime('%b%d%h%M%S') + '.probe'
 
 #fileToPrediction_MU('./graphchi-cpp/mu_qual_val_mm.predict', fileOutLabelPred, fileOutLabelVal, 3)
 fileToPrediction_MU('./graphchi-cpp/mu_qual_probe_mm.predict', fileOutLabelPred, fileOutLabelProbe, 3)

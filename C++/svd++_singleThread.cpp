@@ -256,6 +256,14 @@ Dataset load_data(string path) {
         data.mpu[r-1].push_back(c - 1);
     }
 
+    data.row.shrink_to_fit();
+    data.col.shrink_to_fit();
+    data.val.shrink_to_fit();
+
+    for (int i = 0; i < data.mpu.size(); i++) {
+        data.mpu[i].shrink_to_fit();
+    }
+
     return data;
 }
 
@@ -295,8 +303,8 @@ int main(int argc, char *argv[]) {
     clock_t t = clock();
 
     SVDpp model(latentFactors);
-    cout<<"Model initalized! model used to train mu_train.csv"<<endl;
-    model.train(train_set, epochs, lr, reg);
+    cout<<"Model initalized! model used to train mu_probe.csv"<<endl;
+    model.train(test_set1, epochs, lr, reg);
 
     double t_delta = (double) (clock() - t) / CLOCKS_PER_SEC;
 
@@ -307,10 +315,10 @@ int main(int argc, char *argv[]) {
     rmse = model.error(test_set1, train_set);
     printf("Val RMSE: %.3f\n", rmse);
 
-    /*
+    
     vector<double> predictions = model.predict(test_set1, train_set);
     save_submission("svd++", "mu", "probe", predictions);
     predictions = model.predict(test_set2, train_set);
     save_submission("svd++", "mu", "qual", predictions);
-    */
+    
 }

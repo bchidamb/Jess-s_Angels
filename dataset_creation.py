@@ -33,11 +33,11 @@ five = five.index.tolist()
 print("Broke up indices")
 
 print()
-mu_train = mu_data.loc[one]
-mu_val = mu_data.loc[two]#.drop(['Unnamed: 0'], axis=1).drop(['Unnamed: 0.1'], axis=1)
-mu_hidden  = mu_data.loc[three]
-mu_probe = mu_data.loc[four]
-mu_qual = mu_data.loc[five]
+mu_train = mu_data.loc[one].drop(["Date Number"], axis=1)
+mu_val = mu_data.loc[two].drop(["Date Number"], axis=1)
+mu_hidden  = mu_data.loc[three].drop(["Date Number"], axis=1)
+mu_probe = mu_data.loc[four].drop(["Date Number"], axis=1)
+mu_qual = mu_data.loc[five].drop(["Date Number"], axis=1)
 print("Got indexed items in separate dataframes")
 
 # mu_train.to_csv("data/mu_train.csv")
@@ -83,11 +83,11 @@ um_five = um_idx.loc[um_idx["Index"] == 5]
 um_five = um_five.index.tolist()
 print("Broke up indices")
 
-um_train = um_data.loc[um_one]
-um_val = um_data.loc[um_two]
-um_hidden  = um_data.loc[um_three]
-um_probe = um_data.loc[um_four]
-um_qual = um_data.loc[um_five]
+um_train = um_data.loc[um_one].drop(["Date Number"], axis=1)
+um_val = um_data.loc[um_two].drop(["Date Number"], axis=1)
+um_hidden  = um_data.loc[um_three].drop(["Date Number"], axis=1)
+um_probe = um_data.loc[um_four].drop(["Date Number"], axis=1)
+um_qual = um_data.loc[um_five].drop(["Date Number"], axis=1)
 print("Got indexed items in separate dataframes")
 
 # um_train.to_csv("data/um_train.csv")
