@@ -24,7 +24,6 @@ def fileToMatrixMarket_MU(fileName, label, maxUsers, maxMovies):
     # modify data fram to get rid of data we're not using
     del df['Unnamed: 0']
     del df['Date Number']
-    #del df['bin']
     #def df['bin'] # from our bin stuff
     df = df.astype('int32')
     
@@ -32,7 +31,11 @@ def fileToMatrixMarket_MU(fileName, label, maxUsers, maxMovies):
     if maxUsers == -1:
         maxUsers = df['User Number'].max()
         maxMovies = df['Movie Number'].max()
+        return (maxUsers, maxMovies)
 
+    del df['bin']
+    del df['Unnamed: 0.1']
+    print(df.columns.tolist())
     numRatings = df.shape[0]
     
     print('maxUsers:', maxUsers, 'maxMovies:', maxMovies, 'numRatings', numRatings)
