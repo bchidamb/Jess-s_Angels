@@ -18,9 +18,9 @@ def fileToLibfm_MU(fileName, label):
     print('Loading data', label,'mu...')
     df = pd.read_csv(os.path.join('data', fileName))
     # modify data fram to get rid of data we're not using
-    del df['Unnamed: 0']
-    del df['Unnamed: 0.1']
-    del df['bin'] # from our bin stuff
+    #del df['Unnamed: 0']
+    #del df['Unnamed: 0.1']
+    #del df['bin'] # from our bin stuff
     #del df['Date Number']
     df = df.astype('int32')
 
@@ -36,7 +36,7 @@ def fileToLibfm_MU(fileName, label):
     for index, row in df.iterrows():
         stringToAdd += str(row['User Number']) + "::" + str(row['Movie Number']) + "::" + str(row['Rating']) + '::' + str(row['Date Number']) #+ '\n' 
         count += 1
-        if count is 10000:
+        if count is 50000:
             f.write(stringToAdd)
             stringToAdd = ''
             count = 0
@@ -53,11 +53,11 @@ def fileToLibfm_MU(fileName, label):
     print('file processing done for', label, 'new file created', newFileLocation, '\n')
     
 
+#fileToLibfm_MU('real_mu_qual_probe.csv', 'real_mu_qual_probe')
 #fileToLibfm_MU('mu_val.csv', 'mu_val')
-#fileToLibfm_MU('mu_train.csv', 'mu_train')
+fileToLibfm_MU('real_mu_train.csv', 'real_mu_train')
 #fileToLibfm_MU('mu_probe.csv', 'mu_probe')
 #fileToLibfm_MU('mu_qual.csv', 'mu_qual')
-fileToLibfm_MU('mu_qual_val.csv', 'mu_qual_val')
-fileToLibfm_MU('mu_qual_probe.csv', 'mu_qual_probe')
+#fileToLibfm_MU('mu_qual_val.csv', 'mu_qual_val')
 
 
