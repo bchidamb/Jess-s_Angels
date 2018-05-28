@@ -24,7 +24,8 @@ def fileToMatrixMarket_MU(fileName, label, maxUsers, maxMovies):
     # modify data fram to get rid of data we're not using
     del df['Unnamed: 0']
     del df['Date Number']
-    def df['bin'] # from our bin stuff
+    #del df['bin']
+    #def df['bin'] # from our bin stuff
     df = df.astype('int32')
     
     # assume that our first read in file has the number of users and movies
@@ -57,11 +58,11 @@ def fileToMatrixMarket_MU(fileName, label, maxUsers, maxMovies):
 maxUsers = -1
 maxMovies = -1
 
-maxUsers, maxMovies = fileToMatrixMarket_MU('mu_train.csv', 'mu_train', maxUsers, maxMovies)
-fileToMatrixMarket_MU('mu_val.csv', 'mu_val', maxUsers, maxMovies)
-fileToMatrixMarket_MU('mu_probe.csv', 'mu_probe', maxUsers, maxMovies)
-fileToMatrixMarket_MU('mu_qual.csv', 'mu_qual', maxUsers, maxMovies)
-fileToMatrixMarket_MU('mu_qual_val.csv', 'mu_qual_val', maxUsers, maxMovies)
-fileToMatrixMarket_MU('mu_qual_probe.csv', 'mu_qual_probe', maxUsers, maxMovies)
+maxUsers, maxMovies = fileToMatrixMarket_MU('real_mu_train.csv', 'mu_train', maxUsers, maxMovies)
+#fileToMatrixMarket_MU('mu_val.csv', 'mu_val', maxUsers, maxMovies)
+#fileToMatrixMarket_MU('real_mu_probe.csv', 'mu_probe', maxUsers, maxMovies)
+#fileToMatrixMarket_MU('mu_qual.csv', 'mu_qual', maxUsers, maxMovies)
+#fileToMatrixMarket_MU('mu_qual_val.csv', 'mu_qual_val', maxUsers, maxMovies)
+fileToMatrixMarket_MU('real_mu_qual_probe.csv', 'mu_qual_probe', maxUsers, maxMovies)
 
 
