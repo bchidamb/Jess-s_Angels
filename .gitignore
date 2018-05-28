@@ -37,6 +37,7 @@ data/*
 # trash pmf submissions
 pmf/trash_predictions/*
 pmf/real_data/mu_train.txt
+pmf/real_data/real_mu_train.txt
 pmf/real_data.model
 
 # save model parameters here
