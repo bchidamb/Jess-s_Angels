@@ -73,19 +73,19 @@ class TimeSVDpp {
                    // based on https://github.com/linzebing/timeSVDplusplus
     
     double lr_b_u = 0.007;
-    double lr_a_u = 1e-5;
+    double lr_a_u = 2e-5;
     double lr_b_ut = 0.007;
     double lr_b_m = 0.007;
     double lr_b_mt = 0.007;
-    double lr_lf = 0.008;
-    double lr_a_uk = 1e-5;
+    double lr_lf = 0.02;
+    double lr_a_uk = 2e-5;
     double reg_b_u = 0.005;
-    double reg_a_u = 50.0;
+    double reg_a_u = 10.0;
     double reg_b_ut = 0.005;
     double reg_b_m = 0.005;
     double reg_b_mt = 0.005;
-    double reg_lf = 0.015;
-    double reg_a_uk = 50.0;
+    double reg_lf = 0.03;
+    double reg_a_uk = 10.0;
     
     int lf;
 
@@ -105,7 +105,7 @@ class TimeSVDpp {
         gradY = new double[lf];
 
         default_random_engine generator;
-        normal_distribution<double> distribution(0.0, 0.1);
+        normal_distribution<double> distribution(0.0, 0.01); // edit this for std===================================================================
 
         for (int i = 0; i < n_users; i++) {
             b_u[i] = 0.0;

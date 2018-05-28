@@ -1,3 +1,6 @@
 [submodule "graphchi-cpp"]
 	path = graphchi-cpp
 	url = https://github.com/GraphChi/graphchi-cpp.git
+[submodule "libfm"]
+	path = libfm
+	url = https://github.com/srendle/libfm.git

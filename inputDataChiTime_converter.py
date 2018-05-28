@@ -23,19 +23,19 @@ def fileToMatrixMarket_MU(fileName, label, maxUsers, maxMovies, maxTime):
     df = pd.read_csv(os.path.join('data', fileName))
     # modify data fram to get rid of data we're not using
     del df['Unnamed: 0']
-    del df['bin']
-    #del df['Date Number']
+    #del df['bin']
+    del df['Date Number']
     df = df.astype('int32')
     
     # assume that our first read in file has the number of users and movies
     if maxUsers == -1:
         maxUsers = df['User Number'].max()
         maxMovies = df['Movie Number'].max()
-        maxTime = df['Date Number'].max()
+        maxBins= df['bin'].max()
 
     numRatings = df.shape[0]
     
-    print('maxUsers:', maxUsers, 'maxMovies:', maxMovies, 'maxTime', maxTime, 'numRatings', numRatings)
+    print('maxUsers:', maxUsers, 'maxMovies:', maxMovies, 'maxBins', maxBins, 'numRatings', numRatings)
     newFileName = label + '_mm'
     newFileLocation = "graphchi-cpp/" + newFileName
 
@@ -44,26 +44,26 @@ def fileToMatrixMarket_MU(fileName, label, maxUsers, maxMovies, maxTime):
     print('Finished reading in data, need to prepend info')
     
     # need this for the first row for the Matrix Market Exchange Format
-    rowsColsEntries = str(maxUsers) + ' ' + str(maxMovies) + ' ' + str(maxTime) + ' ' + str(numRatings)
-    print('num Users, num Movies, num Time, num ratings', rowsColsEntries)
+    rowsColsEntries = str(maxUsers) + ' ' + str(maxMovies) + ' ' + str(maxBins) + ' ' + str(numRatings)
+    print('num Users, num Movies, num Bins, num ratings', rowsColsEntries)
     fileHeader = '%%MatrixMarket matrix coordinate real general'
     
     prependEntries(newFileLocation, fileHeader, rowsColsEntries)
     
     print('file processing done for', label, 'new file created', newFileLocation, '\n')
     
-    return(maxUsers, maxMovies, maxTime)
+    return(maxUsers, maxMovies, maxBins)
 
 
 maxUsers = -1
 maxMovies = -1
-maxTime = -1
+maxBins= -1
 
-maxUsers, maxMovies, maxTime = fileToMatrixMarket_MU('mu_train.csv', 'mu_trainTime', maxUsers, maxMovies, maxTime)
-fileToMatrixMarket_MU('mu_val.csv', 'mu_valTime', maxUsers, maxMovies, maxTime)
-fileToMatrixMarket_MU('mu_probe.csv', 'mu_probeTime', maxUsers, maxMovies, maxTime)
-fileToMatrixMarket_MU('mu_qual.csv', 'mu_qualTime', maxUsers, maxMovies, maxTime)
-fileToMatrixMarket_MU('mu_qual_val.csv', 'mu_qual_valTime', maxUsers, maxMovies, maxTime)
-fileToMatrixMarket_MU('mu_qual_probe.csv', 'mu_qual_probeTime', maxUsers, maxMovies, maxTime)
+maxUsers, maxMovies, maxBins= fileToMatrixMarket_MU('mu_train.csv', 'mu_trainTime', maxUsers, maxMovies, maxBins)
+fileToMatrixMarket_MU('mu_val.csv', 'mu_valTime', maxUsers, maxMovies, maxBins)
+fileToMatrixMarket_MU('mu_probe.csv', 'mu_probeTime', maxUsers, maxMovies, maxBins)
+fileToMatrixMarket_MU('mu_qual.csv', 'mu_qualTime', maxUsers, maxMovies, maxBins)
+fileToMatrixMarket_MU('mu_qual_val.csv', 'mu_qual_valTime', maxUsers, maxMovies, maxBins)
+fileToMatrixMarket_MU('mu_qual_probe.csv', 'mu_qual_probeTime', maxUsers, maxMovies, maxBins)
 
 
