@@ -12,18 +12,22 @@ import gc
 
 
 # Input the filenames of the prediction files for all modles
-probe_names = ["submissions/final blend/mu_svd_probe_May25041116_rmse918.pred",
-                "submissions/final blend/mu_svd++_probe_May25155049_rmse917.pred",
-                "pmf/predictionsl005k65t10"]
+probe_names = ["submissions/final blend/mu_svd_probe_May25041116_rmse918.pred",     # SVD
+                "submissions/final blend/mu_svd++_probe_May25155049_rmse917.pred",  # SVD++
+                "submissions/mu_rbm_graphchiMay26May4537.probe",                    # RBM
+                #"pmf/predictionsl005k30t10NMF",                                    # NMF
+                "pmf/predictionsl005k65t10"]                                        # PMF
 qual_names = ["submissions/final blend/mu_svd_qual_May25041117_rmse91993.pred",
                 "submissions/final blend/mu_svd++_qual_May25155100_rmse91912.pred",
+                "submissions/mu_rbm_graphchiMay26May4537.pred",
+                #"pmf/predictionsl005k30t10NMFqual",
                 "pmf/predictionsl005k65t10qual"]
 num_models = len(probe_names)
 
 probe_length = 1374739
 qual_length = 2749898
 
-method = 2  #1: single layer, 2: 20-40 layers
+method = 1  #1: single layer, 2: 20-40 layers
 n_hidden = 30
 ordering = 'mu' # rows correspond to movie_ids; cols correspond to user_ids
 submit = True # set to True to save a submission on qual
@@ -119,4 +123,4 @@ if save_model:
 
 # Profit
 if submit:
-    save_submission("blendn30", blend_pred, ordering)
+    save_submission("blendn" + str(n_hidden), blend_pred, ordering)

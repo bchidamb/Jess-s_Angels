@@ -29,129 +29,102 @@ def binDataframe(df):
 
     return df
 
-# Perform this for all datasets
+print('Loading mu probe set...')
+real_mu_probe = pd.read_csv(os.path.join('data', 'real_mu_probe.csv'))
+real_mu_probe = binDataframe(real_mu_probe)
+mu_probe.to_csv("data/real_mu_probe.csv")
+gc.collect()
 
+print('Loading mu qual set...')
+real_mu_qual = pd.read_csv(os.path.join('data', 'real_mu_qual.csv'))
+real_mu_qual = binDataframe(real_mu_qual)
+real_mu_qual.to_csv("data/real_mu_qual.csv")
+gc.collect()
+
+print('Loading mu train set...')
+real_mu_train = pd.read_csv(os.path.join('data', 'real_mu_train.csv'))
+real_mu_train = binDataframe(real_mu_train)
+real_mu_train.to_csv("data/real_mu_train.csv")
+gc.collect()
+
+# UM
+print('Loading um probe set...')
+real_um_probe = pd.read_csv(os.path.join('data', 'real_um_probe.csv'))
+real_um_probe = binDataframe(real_um_probe)
+um_probe.to_csv("data/real_um_probe.csv")
+gc.collect()
+
+print('Loading um qual set...')
+real_um_qual = pd.read_csv(os.path.join('data', 'real_um_qual.csv'))
+real_um_qual = binDataframe(real_um_qual)
+real_um_qual.to_csv("data/real_um_qual.csv")
+gc.collect()
+
+print('Loading um train set...')
+real_um_train = pd.read_csv(os.path.join('data', 'real_um_train.csv'))
+real_um_train = binDataframe(real_um_train)
+real_um_train.to_csv("data/real_um_train.csv")
+gc.collect()
+
+# 
 # # MU Data Sets
 # print('Loading mu probe set...')
 # mu_probe = pd.read_csv(os.path.join('data', 'mu_probe.csv'))
 # mu_probe = binDataframe(mu_probe)
-# mu_probe.to_csv("data/mu_probe.txt", header=None, index=None, sep=' ', mode='a')
+# mu_probe.to_csv("data/mu_probe.csv")
 # gc.collect()
 #
 # print('Loading mu val set...')
 # mu_val = pd.read_csv(os.path.join('data', 'mu_val.csv'))
 # mu_val = binDataframe(mu_val)
-# mu_val.to_csv("data/mu_val.txt", header=None, index=None, sep=' ', mode='a')
+# mu_val.to_csv("data/mu_val.csv")
 # gc.collect()
 #
 # print('Loading mu hidden set...')
 # mu_hidden = pd.read_csv(os.path.join('data', 'mu_hidden.csv'))
 # mu_hidden = binDataframe(mu_hidden)
-# mu_hidden.to_csv("data/mu_hidden.txt", header=None, index=None, sep=' ', mode='a')
+# mu_hidden.to_csv("data/mu_hidden.csv")
 # gc.collect()
 #
 # print('Loading mu qual set...')
 # mu_qual = pd.read_csv(os.path.join('data', 'mu_qual.csv'))
 # mu_qual = binDataframe(mu_qual)
-# mu_qual.to_csv("data/mu_qual.txt", header=None, index=None, sep=' ', mode='a')
+# mu_qual.to_csv("data/mu_qual.csv")
 # gc.collect()
 #
 # print('Loading mu train set...')
 # mu_train = pd.read_csv(os.path.join('data', 'mu_train.csv'))
 # mu_train = binDataframe(mu_train)
-# mu_train.to_csv("data/mu_train.txt", header=None, index=None, sep=' ', mode='a')
+# mu_train.to_csv("data/mu_train.csv")
 # gc.collect()
 #
 # # UM Data sets
 # print('Loading um probe set...')
 # um_probe = pd.read_csv(os.path.join('data', 'um_probe.csv'))
 # um_probe = binDataframe(um_probe)
-# um_probe.to_csv("data/um_probe.txt", header=None, index=None, sep=' ', mode='a')
+# um_probe.to_csv("data/um_probe.csv")
 # gc.collect()
 #
 # print('Loading um val set...')
 # um_val = pd.read_csv(os.path.join('data', 'um_val.csv'))
 # um_val = binDataframe(um_val)
-# um_val.to_csv("data/um_val.txt", header=None, index=None, sep=' ', mode='a')
+# um_val.to_csv("data/um_val.csv")
 # gc.collect()
 #
 # print('Loading um hidden set...')
 # um_hidden = pd.read_csv(os.path.join('data', 'um_hidden.csv'))
 # um_hidden = binDataframe(um_hidden)
-# um_hidden.to_csv("data/um_hidden.txt", header=None, index=None, sep=' ', mode='a')
+# um_hidden.to_csv("data/um_hidden.csv")
 # gc.collect()
 #
 # print('Loading um qual set...')
 # um_qual = pd.read_csv(os.path.join('data', 'um_qual.csv'))
 # um_qual = binDataframe(um_qual)
-# um_qual.to_csv("data/um_qual.txt", header=None, index=None, sep=' ', mode='a')
+# um_qual.to_csv("data/um_qual.csv")
 # gc.collect()
 #
 # print('Loading um train set...')
 # um_train = pd.read_csv(os.path.join('data', 'um_train.csv'))
 # um_train = binDataframe(um_train)
-# um_train.to_csv("data/um_train.txt", header=None, index=None, sep=' ', mode='a')
+# um_train.to_csv("data/um_train.csv")
 # gc.collect()
-
-
-# MU Data Sets
-print('Loading mu probe set...')
-mu_probe = pd.read_csv(os.path.join('data', 'mu_probe.csv'))
-mu_probe = binDataframe(mu_probe)
-mu_probe.to_csv("data/mu_probe.csv")
-gc.collect()
-
-print('Loading mu val set...')
-mu_val = pd.read_csv(os.path.join('data', 'mu_val.csv'))
-mu_val = binDataframe(mu_val)
-mu_val.to_csv("data/mu_val.csv")
-gc.collect()
-
-print('Loading mu hidden set...')
-mu_hidden = pd.read_csv(os.path.join('data', 'mu_hidden.csv'))
-mu_hidden = binDataframe(mu_hidden)
-mu_hidden.to_csv("data/mu_hidden.csv")
-gc.collect()
-
-print('Loading mu qual set...')
-mu_qual = pd.read_csv(os.path.join('data', 'mu_qual.csv'))
-mu_qual = binDataframe(mu_qual)
-mu_qual.to_csv("data/mu_qual.csv")
-gc.collect()
-
-print('Loading mu train set...')
-mu_train = pd.read_csv(os.path.join('data', 'mu_train.csv'))
-mu_train = binDataframe(mu_train)
-mu_train.to_csv("data/mu_train.csv")
-gc.collect()
-
-# UM Data sets
-print('Loading um probe set...')
-um_probe = pd.read_csv(os.path.join('data', 'um_probe.csv'))
-um_probe = binDataframe(um_probe)
-um_probe.to_csv("data/um_probe.csv")
-gc.collect()
-
-print('Loading um val set...')
-um_val = pd.read_csv(os.path.join('data', 'um_val.csv'))
-um_val = binDataframe(um_val)
-um_val.to_csv("data/um_val.csv")
-gc.collect()
-
-print('Loading um hidden set...')
-um_hidden = pd.read_csv(os.path.join('data', 'um_hidden.csv'))
-um_hidden = binDataframe(um_hidden)
-um_hidden.to_csv("data/um_hidden.csv")
-gc.collect()
-
-print('Loading um qual set...')
-um_qual = pd.read_csv(os.path.join('data', 'um_qual.csv'))
-um_qual = binDataframe(um_qual)
-um_qual.to_csv("data/um_qual.csv")
-gc.collect()
-
-print('Loading um train set...')
-um_train = pd.read_csv(os.path.join('data', 'um_train.csv'))
-um_train = binDataframe(um_train)
-um_train.to_csv("data/um_train.csv")
-gc.collect()
