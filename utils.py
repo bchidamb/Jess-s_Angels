@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import os
 from time import strftime, clock
 
@@ -43,3 +44,27 @@ def save_submission(model_name, pred, ordering='mu'):
         f.write('%.3f\n' % p)
         
     f.close()
+    
+    
+def um_to_mu(filename, dataset=os.path.join('data', 'um_qual.csv')):
+    '''
+    Takes a submission file saved in user-movie ordering and swaps it to 
+    movie-user ordering
+    
+    Arguments:
+        filename - the path of the submission file for um_qual
+        dataset - the path of the dataset whose predictions are converted
+    
+    Returns:
+        A list of numbers holding the predictions in movie-user order
+    '''
+    qual = pd.read_csv(dataset)
+    um_pred = np.loadtxt(filename, delimiter='\n')
+    
+    qual['pred'] = pd.Series(um_pred, index=qual.index)
+    
+    mu_qual = qual.sort_values(['Movie Number', 'User Number'])['pred'].values
+    
+    return mu_qual
+    
+    

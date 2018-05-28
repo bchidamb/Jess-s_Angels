@@ -74,7 +74,7 @@ class SVDpp {
         gradY = new double[lf];
 
         default_random_engine generator;
-        normal_distribution<double> distribution(0.0, 0.1);
+        normal_distribution<double> distribution(0.0, 0.2 / sqrt(lf));
 
         for (int i = 0; i < n_users; i++) {
             b_u[i] = 0.0;
@@ -188,7 +188,7 @@ class SVDpp {
                 }
             }
             
-            decay *= 0.9;
+            decay *= 0.8;
         }
         
     }
@@ -279,15 +279,15 @@ void save_submission(string model_name, string ordering, string source, vector<d
 }
 
 int main(int argc, char *argv[]) {
-    int latentFactors = 20;
-    int epochs = 20;
+    int latentFactors = 200;
+    int epochs = 40;
     double lr = 0.007;   //
     double reg = 0.015; // these parameters are currently hardcoded
 
     cout << "Loading data..." << endl;
 
-    Dataset train_set = load_data("../data/um_train.csv");
-    Dataset test_set1 = load_data("../data/um_probe.csv");
+    Dataset train_set = load_data("../data/real_um_train.csv");
+    Dataset test_set1 = load_data("../data/real_um_probe.csv");
     Dataset test_set2 = load_data("../data/um_qual.csv");
 
     cout << "Training model..." << endl;
@@ -304,14 +304,14 @@ int main(int argc, char *argv[]) {
 
     printf("Training time: %.2f s\n", t_delta);
     
-    double rmse = model.error(train_set, train_set);
-    printf("Train RMSE: %.3f\n", rmse);
-    rmse = model.error(test_set1, train_set);
+    // double rmse = model.error(train_set, train_set);
+    // printf("Train RMSE: %.3f\n", rmse);
+    double rmse = model.error(test_set1, train_set);
     printf("Val RMSE: %.3f\n", rmse);
-    /*
+    
     vector<double> predictions = model.predict(test_set1, train_set);
-    save_submission("time_svd++", "um", "probe", predictions);
+    save_submission("svd++", "um", "real_probe", predictions);
     predictions = model.predict(test_set2, train_set);
-    save_submission("time_svd++", "um", "qual", predictions);
-    */
+    save_submission("svd++", "um", "qual", predictions);
+    
 }

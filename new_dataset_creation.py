@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import gc
 
 probe_size = 100000
 
@@ -40,6 +41,7 @@ mu_train.to_csv("data/real_mu_train.csv")
 mu_train.drop(["Date Number"], axis=1).to_csv("data/real_mu_train.txt", header=None, index=False, sep=' ')
 print(len(mu_train))
 
+gc.collect()
 
 ###
 # um data

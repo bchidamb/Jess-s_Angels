@@ -149,16 +149,16 @@ int main(int argc, char *argv[]) {
 
     cout << "Loading data..." << endl;
 
-    Dataset train_set = load_data("../data/mu_train.csv");
-    Dataset test_set1 = load_data("../data/mu_probe.csv");
+    Dataset train_set = load_data("../data/real_mu_train.csv");
+    Dataset test_set1 = load_data("../data/real_mu_probe.csv");
     Dataset test_set2 = load_data("../data/mu_qual.csv");
 
     cout << "Training model..." << endl;
 
     clock_t t = clock();
 
-    SVD model(458293, 17770, 20);
-    model.train(train_set, 20, 0.005, 0.02);
+    SVD model(458293, 17770, 100);
+    model.train(train_set, 50, 0.005, 0.02);
 
     double t_delta = (double) (clock() - t) / CLOCKS_PER_SEC;
 
@@ -170,7 +170,7 @@ int main(int argc, char *argv[]) {
     printf("Val RMSE: %.3f\n", rmse);
     
     vector<double> predictions = model.predict(test_set1);
-    save_submission("svd", "mu", "probe", predictions);
+    save_submission("svd", "mu", "real_probe", predictions);
     predictions = model.predict(test_set2);
     save_submission("svd", "mu", "qual", predictions);
     

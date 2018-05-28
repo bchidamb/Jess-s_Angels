@@ -18,6 +18,8 @@
 #define n_movies 17770
 #define n_bins 30
 #define beta 0.4
+#define min_date 1.0
+#define max_date 2243.0
 
 using namespace std;
 
@@ -105,7 +107,7 @@ class TimeSVDpp {
         gradY = new double[lf];
 
         default_random_engine generator;
-        normal_distribution<double> distribution(0.0, 0.01); // edit this for std===================================================================
+        normal_distribution<double> distribution(0.0, 0.01);
 
         for (int i = 0; i < n_users; i++) {
             b_u[i] = 0.0;
@@ -349,13 +351,15 @@ Dataset load_data(string path) {
     Dataset data;
     data.user_data.resize(n_users);
 
-    io::CSVReader<5> in(path);
-    in.read_header(io::ignore_extra_column, "User Number", "Movie Number", "Date Number", "Rating", "bin");
+    io::CSVReader<4> in(path);
+    in.read_header(io::ignore_extra_column, "User Number", "Movie Number", "Date Number", "Rating");
     
     double sum = 0.0;
     data.n_examples = 0;
+    double bin_size = (1 + max_date - min_date) / n_bins;
     int u, m, t, r, bin_t;
-    while(in.read_row(u, m, t, r, bin_t)) {
+    while(in.read_row(u, m, t, r)) {
+        bin_t = (t - min_date) / bin_size;
         Example ex = {m-1, t, r, bin_t};
         data.user_data[u-1].entries.push_back(ex);
         data.user_data[u-1].dates.insert(t);
@@ -395,14 +399,14 @@ void save_submission(string model_name, string ordering, string source, vector<d
 
 int main(int argc, char *argv[]) {
     int latentFactors = 100;
-    int epochs = 20;
-    double lr = 0.008;  //
-    double reg = 0.015; // these parameters are currently hard-coded
+    int epochs = 30;
+    double lr = 0.02;  //
+    double reg = 0.03; // these parameters are currently hard-coded
 
     cout << "Loading data..." << endl;
 
-    Dataset train_set = load_data("../data/um_train.csv");
-    Dataset test_set1 = load_data("../data/um_probe.csv");
+    Dataset train_set = load_data("../data/real_um_train.csv");
+    Dataset test_set1 = load_data("../data/real_um_probe.csv");
     Dataset test_set2 = load_data("../data/um_qual.csv");
 
     cout << "Training model..." << endl;
@@ -412,7 +416,7 @@ int main(int argc, char *argv[]) {
     clock_t t = clock();
 
     TimeSVDpp model(latentFactors);
-    cout<<"Model initialized! model used to train um_train.csv"<<endl;
+    cout<<"Model initialized! model used to train real_um_train.csv"<<endl;
     model.train(train_set, test_set1, epochs);
 
     double t_delta = (double) (clock() - t) / CLOCKS_PER_SEC;
@@ -423,11 +427,10 @@ int main(int argc, char *argv[]) {
     // printf("Train RMSE: %.3f\n", rmse);
     double rmse = model.error(test_set1, train_set);
     printf("Val RMSE: %.3f\n", rmse);
-    /*
+    
     vector<double> predictions = model.predict(test_set1, train_set);
-    save_submission("time_svd++", "um", "probe", predictions);
+    save_submission("time_svd++", "um", "real_probe", predictions);
     predictions = model.predict(test_set2, train_set);
     save_submission("time_svd++", "um", "qual", predictions);
-    */
 
 }
