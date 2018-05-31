@@ -405,8 +405,8 @@ int main(int argc, char *argv[]) {
 
     cout << "Loading data..." << endl;
 
-    Dataset train_set = load_data("../data/real_um_train.csv");
-    Dataset test_set1 = load_data("../data/real_um_probe.csv");
+    Dataset train_set = load_data("../data/real_mu_train.csv");
+    Dataset test_set1 = load_data("../data/real_um_probe_sorted.csv");
     Dataset test_set2 = load_data("../data/um_qual.csv");
 
     cout << "Training model..." << endl;
@@ -416,7 +416,7 @@ int main(int argc, char *argv[]) {
     clock_t t = clock();
 
     TimeSVDpp model(latentFactors);
-    cout<<"Model initialized! model used to train real_um_train.csv"<<endl;
+    cout<<"Model initialized! model used to train real_mu_train.csv"<<endl;
     model.train(train_set, test_set1, epochs);
 
     double t_delta = (double) (clock() - t) / CLOCKS_PER_SEC;

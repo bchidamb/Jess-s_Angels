@@ -62,9 +62,11 @@ class SVD {
     }
 
     double pred_one(int u, int m) {
+        double * p_u = p[u];
+        double * q_m = q[m];
         double dot = 0.0;
         for (int i = 0; i < lf; i++) {
-            dot += p[u][i] * q[m][i];
+            dot += p_u[i] * q_m[i];
         }
         return (dot + b_u[u] + b_m[m] + mean);
     }
@@ -85,11 +87,13 @@ class SVD {
                 double dr = pred_one(u, m) - data.val[idx[i]];
                 b_u[u] -= lr * (dr + reg * b_u[u]);
                 b_m[m] -= lr * (dr + reg * b_m[m]);
+                double * p_u = p[u];
+                double * q_m = q[m];
                 for (int j = 0; j < lf; j++) {
-                    double p_old = p[u][j];
-                    double q_old = q[m][j];
-                    p[u][j] -= lr * (dr * q_old + reg * p_old);
-                    q[m][j] -= lr * (dr * p_old + reg * q_old);
+                    double p_old = p_u[j];
+                    double q_old = q_m[j];
+                    p_u[j] -= lr * (dr * q_old + reg * p_old);
+                    q_m[j] -= lr * (dr * p_old + reg * q_old);
                 }
             }
         }
@@ -150,14 +154,14 @@ int main(int argc, char *argv[]) {
     cout << "Loading data..." << endl;
 
     Dataset train_set = load_data("../data/real_mu_train.csv");
-    Dataset test_set1 = load_data("../data/real_mu_probe.csv");
+    Dataset test_set1 = load_data("../data/real_mu_probe_sorted.csv");
     Dataset test_set2 = load_data("../data/mu_qual.csv");
 
     cout << "Training model..." << endl;
 
     clock_t t = clock();
 
-    SVD model(458293, 17770, 100);
+    SVD model(458293, 17770, 500);
     model.train(train_set, 50, 0.005, 0.02);
 
     double t_delta = (double) (clock() - t) / CLOCKS_PER_SEC;

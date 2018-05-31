@@ -20,6 +20,8 @@
 #define n_movies 17770
 #define n_bins 30
 #define beta 0.4
+#define min_date 1.0
+#define max_date 2243.0
 
 using namespace std;
 
@@ -491,17 +493,14 @@ class Baseline {
         b_mt = Dynamic2DArray<double>(n_movies, n_bins);
         u_tmean = new double[n_users];
 
-        default_random_engine generator;
-        normal_distribution<double> distribution(0.0, 0.1);
-
         for (int i = 0; i < n_users; i++) {
-            b_u[i] = 0.0 * distribution(generator);
-            a_u[i] = 0.0 * distribution(generator);
+            b_u[i] = 0.0;
+            a_u[i] = 0.0;
         }
         for (int i = 0; i < n_movies; i++) {
-            b_m[i] = 0.0 * distribution(generator);
+            b_m[i] = 0.0;
             for (int b = 0; b < n_bins; b++) {
-                b_mt[i][b] = 0.0 * distribution(generator);
+                b_mt[i][b] = 0.0;
             }
         }
         
@@ -527,12 +526,10 @@ class Baseline {
             idx.push_back(i);
         }
         
-        default_random_engine generator;
-        normal_distribution<double> distribution(0.0, 0.1);
         for (int u = 0; u < n_users; u++) {
             u_tmean[u] = data.mean_date[u];
             for (int t: data.unique_dpu[u]) {
-                b_ut[u][t] = 0.0 * distribution(generator);
+                b_ut[u][t] = 0.0;
             }
         }
         
@@ -606,16 +603,18 @@ double compute_average(vector<int> &vi) {
 Dataset load_data(string path) {
     Dataset data;
 
-    io::CSVReader<5> in(path);
-    in.read_header(io::ignore_extra_column, "User Number", "Movie Number", "Date Number", "Rating", "bin");
+    io::CSVReader<4> in(path);
+    in.read_header(io::ignore_extra_column, "User Number", "Movie Number", "Date Number", "Rating");
 
-    int r, c, t, v, b;
-    while(in.read_row(r, c, t, v, b)) {
+    double bin_size = (1 + max_date - min_date) / n_bins;
+    int r, c, t, v, bin_t;
+    while(in.read_row(r, c, t, v)) {
+        bin_t = (t - min_date) / bin_size;
         data.row.push_back(r - 1);
         data.col.push_back(c - 1);
         data.val.push_back(v);
         data.day.push_back(t);
-        data.bin.push_back(b);
+        data.bin.push_back(bin_t);
         data.mpu[r-1].push_back(c - 1);
         data.dpu[r-1].push_back(t);
         data.unique_dpu[r-1].insert(t);
@@ -647,14 +646,14 @@ void save_submission(string model_name, string ordering, string source, vector<d
 }
 
 int main(int argc, char *argv[]) {
-    int epochs = 10;
+    int epochs = 20;
     double lr = 0.008;   //
     double reg = 0.0015; // these parameters are currently hardcoded
 
     cout << "Loading data..." << endl;
 
-    Dataset train_set = load_data("../data/um_train.csv");
-    Dataset test_set1 = load_data("../data/um_probe.csv");
+    Dataset train_set = load_data("../data/real_mu_train.csv");
+    Dataset test_set1 = load_data("../data/real_mu_probe_sorted.csv");
     Dataset test_set2 = load_data("../data/um_qual.csv");
 
     cout << "Training model..." << endl;
@@ -663,7 +662,7 @@ int main(int argc, char *argv[]) {
     clock_t t = clock();
 
     Baseline model;
-    cout<<"Model initalized! model used to train um_train.csv"<<endl;
+    cout<<"Model initalized! model used to train real_mu_train.csv"<<endl;
     model.train(train_set, test_set1, epochs);
 
     double t_delta = (double) (clock() - t) / CLOCKS_PER_SEC;
@@ -675,10 +674,8 @@ int main(int argc, char *argv[]) {
     rmse = model.error(test_set1);
     printf("Val RMSE: %.3f\n", rmse);
     
-    /* UNCOMMENT TO SAVE SUBMISSION
-    vector<double> predictions = model.predict(test_set1, train_set);
-    save_submission("baseline", "um", "probe", predictions);
-    predictions = model.predict(test_set2, train_set);
+    vector<double> predictions = model.predict(test_set1);
+    save_submission("baseline", "um", "real_probe", predictions);
+    predictions = model.predict(test_set2);
     save_submission("baseline", "um", "qual", predictions);
-    */
 }

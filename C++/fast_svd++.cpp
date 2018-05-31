@@ -286,8 +286,8 @@ int main(int argc, char *argv[]) {
 
     cout << "Loading data..." << endl;
 
-    Dataset train_set = load_data("../data/real_um_train.csv");
-    Dataset test_set1 = load_data("../data/real_um_probe.csv");
+    Dataset train_set = load_data("../data/real_mu_train.csv");
+    Dataset test_set1 = load_data("../data/real_um_probe_sorted.csv");
     Dataset test_set2 = load_data("../data/um_qual.csv");
 
     cout << "Training model..." << endl;

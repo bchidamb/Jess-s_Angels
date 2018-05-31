@@ -28,8 +28,9 @@ def I_AutoRec(n_users, k, lr, reg, dpt):
                     'bias_initializer': inits, 
                     'kernel_regularizer': regs}
     
-    hidden = tf.layers.dense(input_prc, k, activation=tf.sigmoid, **layer_args)
-    predictions = tf.layers.dense(hidden, n_users, activation=tf.sigmoid, **layer_args)
+    hidden1 = tf.layers.dense(input_prc, k, activation=tf.sigmoid, **layer_args)
+    # hidden2 = tf.layers.dense(hidden1, k, activation=tf.sigmoid, **layer_args)
+    predictions = tf.layers.dense(hidden1, n_users, activation=tf.sigmoid, **layer_args)
     
     se = tf.reduce_sum(tf.square(tf.multiply(predictions - input, mask))) / tf.reduce_sum(mask)
     reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
